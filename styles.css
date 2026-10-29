@@ -11,5 +11,24 @@
 .level-preview{width:100%;height:104px;grid-template-columns:repeat(var(--preview-cols),minmax(0,8px));gap:2px}.preview-cell{width:100%;height:8px}.level-info{gap:6px;flex-wrap:wrap}
 .palette{flex-wrap:wrap}.palette>span{flex-shrink:0}
 /* 桌面棋盤依視窗高度縮放，短螢幕仍能看見完整盤面。 */
+.ppa-info{color:#eadbff;font-size:13px;line-height:1.7;padding:12px 0;border-top:1px solid #373044}.ppa-info b{font-size:20px;color:#fff8e8}.ppa-info small{display:block;color:var(--muted);font-size:11px}.ppa-notice{display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.8;color:#bdb6ca;margin:0 0 18px}.ppa-notice .gem{width:24px;min-width:24px;height:32px}.ppa-status{color:#e5caff;font-size:13px;letter-spacing:1px;margin:12px 0;text-align:center}.ppa-active{box-shadow:0 0 35px #ba8df026}.ppa-active .route-line{stroke:#e1baff;stroke-width:4}.ppa-active .route-end{fill:#fff0c7}.ppa-active .bonus-ring{stroke:#efc9ff;stroke-width:3;animation:ppa-pulse .3s ease-out both}.paused .connection-layer{visibility:hidden}@keyframes ppa-pulse{from{opacity:.4;filter:drop-shadow(0 0 3px #cda4ff)}to{opacity:1;filter:drop-shadow(0 0 10px #cda4ff)}}@media(prefers-reduced-motion:reduce){.ppa-active .bonus-ring{animation:none;filter:none}.ppa-active{box-shadow:none}}
 .board{grid-template-columns:.5fr repeat(var(--inner-cols),minmax(0,1fr)) .5fr;grid-template-rows:.5fr repeat(var(--inner-rows),minmax(0,1fr)) .5fr;aspect-ratio:var(--board-ratio)}
+/* PPA 稀有道具：分層亮底、實品像素瓶與同一 Combo 強度的視覺回饋。 */
+.board-cell.ppa-tile{--charge:.28;--halo-size:4px;--rim:#b8a7cd;--halo-color:#b29bce55;background:radial-gradient(ellipse at 46% 38%,#fffdf3 25%,#f4f1ef 58%,#ded9e7 83%,#c8c0d8 100%);border-color:var(--rim);box-shadow:inset 0 1px 0 #fff,inset 1px 0 0 #fff9,inset -2px -3px 0 #b6adc466,0 1px 2px #0c111b88;isolation:isolate}
+.board[data-ppa-power="2"] .ppa-tile{--charge:.44;--halo-size:6px;--rim:#b39acf;--halo-color:#b39ad575}
+.board[data-ppa-power="3"] .ppa-tile{--charge:.62;--halo-size:8px;--rim:#ae8bda;--halo-color:#b89bea90}
+.board[data-ppa-power="4"] .ppa-tile{--charge:.8;--halo-size:11px;--rim:#a079ce;--halo-color:#c3a0f4a6}
+.board[data-ppa-power="5"] .ppa-tile{--charge:1;--halo-size:14px;--rim:#9266c5;--halo-color:#cfaeffbf}
+.board-cell.ppa-tile::before{content:"";position:absolute;inset:2px;border:1px solid #fffaf5b3;box-shadow:inset 0 0 5px #c9b6e455,0 0 var(--halo-size) var(--halo-color),-1px 0 3px #bce7f399;pointer-events:none;opacity:var(--charge);animation:ppa-breathe 4.2s ease-in-out infinite;z-index:0}
+.board-cell.ppa-tile:not(:disabled):hover{border-color:#8e6bbc;background:radial-gradient(ellipse at 46% 38%,#fffef8 28%,#f4eff8 65%,#d6c8e8 100%)}
+.board-cell.ppa-tile.selected{border-color:#8252b3;box-shadow:inset 0 0 0 1px #fff8f0,0 0 0 2px #d8bbfa,0 0 16px #c1a0ec88}
+.board-cell.ppa-tile.selected::before{animation:none;opacity:1}
+.board-cell .ppa-bottle{width:74%;height:94%;max-width:none;position:relative;z-index:2;filter:drop-shadow(-1px 0 1px #bfe8f588) drop-shadow(1px 1px 1px #9373ba99)}
+.ppa-sparks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.ppa-spark{display:none;fill:#8e6cb3;stroke:#76638d;stroke-width:.5}
+.ppa-spark:nth-child(even){fill:#8ac6db;stroke:#668dba}
+.ppa-spark.spark-1,.board[data-ppa-power="2"] .spark-2,.board[data-ppa-power="3"] :is(.spark-2,.spark-3),.board[data-ppa-power="4"] :is(.spark-2,.spark-3,.spark-4),.board[data-ppa-power="5"] .ppa-spark{display:block}
+.paused .ppa-tile::before{animation-play-state:paused}
+@keyframes ppa-breathe{0%,100%{opacity:calc(var(--charge) * .65)}50%{opacity:var(--charge)}}
+@media(prefers-reduced-motion:reduce){.board-cell.ppa-tile::before{animation:none;opacity:var(--charge)}}
 @media(min-width:761px){body[data-view="game"] .site-header{height:78px}.game-topline{padding:13px 0}.board-shell{width:min(100%,calc(max(300px,100dvh - 350px) * var(--board-ratio,1)))}.game-heading-row{margin-bottom:15px}.timer-panel{margin-bottom:15px}}

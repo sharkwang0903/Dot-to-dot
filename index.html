@@ -4,15 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111821">
-  <meta name="description" content="像素寶石連連看。十六個關卡、兩次轉彎，連起你的下一顆星。">
-  <title>DOT TO DOT — 像素寶石連連看</title>
+  <meta name="description" content="跟著粉紅水母完成三關連連看，探索 PPA 日常保養。另有十六關自由挑戰。">
+  <title>PPA 肌膚升級之旅 — DOT TO DOT</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%2388dfb5' d='M8 3h16v5h5v14h-5v5H8v-5H3V8h5z'/%3E%3Cpath fill='%23e4ffe8' d='M9 7h12v4H9z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="campaign.css">
   <script defer src="js/levels.js"></script>
+  <script defer src="js/campaign.js"></script>
   <script defer src="js/engine.js"></script>
   <script defer src="js/storage.js"></script>
+  <script defer src="js/campaign-storage.js"></script>
   <script defer src="js/audio.js"></script>
   <script defer src="js/ui.js"></script>
+  <script defer src="js/campaign-ui.js"></script>
   <script defer src="js/game.js"></script>
 </head>
 <body>
@@ -33,59 +37,61 @@
   <div class="ambient" aria-hidden="true"></div>
   <div class="app-shell">
     <header class="site-header">
-      <button class="brand" data-action="home" aria-label="DOT TO DOT 首頁"><span class="brand-gem" aria-hidden="true"></span><span>DOT<span class="brand-to"> TO </span>DOT<span class="brand-period">.</span></span></button>
+      <button class="brand campaign-brand" data-action="home" aria-label="PPA 活動首頁"><span class="brand-gem" aria-hidden="true"></span><span>PPA<small>肌膚升級之旅 · DOT TO DOT</small></span></button>
       <div class="header-right"><span class="header-caption">A LITTLE CONNECTION. A LITTLE MAGIC.</span><button class="icon-button sound-toggle" data-action="sound" aria-label="關閉音效"></button><button class="icon-button" data-action="help" aria-label="遊戲說明"><svg class="icon"><use href="#i-help"/></svg></button></div>
     </header>
 
     <main>
       <section id="home-view" class="view home-view" aria-labelledby="home-heading">
-        <div class="home-hero">
-          <div class="hero-copy">
-            <div class="eyebrow"><span class="status-dot"></span> THE PIXEL PUZZLE CLUB</div>
-            <h1 id="home-heading"><span class="sr-only">DOT TO DOT 寶石連連看</span><span id="pixel-title" aria-hidden="true"></span></h1>
-            <p class="hero-tagline">一點默契，連起每一道光。</p>
-            <p class="hero-description">找到相同的寶石，用兩次轉彎內的路線連起來。<br class="desktop-break">清空棋盤，收集星星，讓下一關亮起。</p>
-            <button class="button button-primary start-button" data-action="levels">開始遊戲 <svg class="icon"><use href="#i-arrow"/></svg></button>
-            <div class="hero-meta"><span><b>16</b> 道關卡</span><span><b>48</b> 顆星星</span><span>隨時再挑戰</span></div>
+        <div class="campaign-hero">
+          <div class="campaign-hero-copy">
+            <div class="eyebrow"><span class="status-dot"></span> A LITTLE CARE. A NEW CONNECTION.</div>
+            <p id="campaign-name" class="campaign-name"></p>
+            <h1 id="home-heading"></h1>
+            <p id="campaign-intro" class="campaign-intro"></p>
+            <p id="campaign-detail" class="campaign-detail"></p>
+            <div class="campaign-hero-actions"><button id="campaign-start" class="button button-primary" data-action="campaign-start">開始三關挑戰</button><a class="button button-secondary" href="#campaign-information">認識 PPA 與活動贈禮</a></div>
+            <p id="campaign-progress" class="campaign-progress"></p>
           </div>
-          <div class="hero-art" aria-hidden="true">
-            <span class="art-spark spark-one">✦</span><span class="art-spark spark-two">+</span>
-            <div class="demo-machine">
-              <div class="machine-top"><span><i></i> CONNECTION FOUND</span><span>01 / 16</span></div>
-              <div id="demo-board" class="demo-board"></div>
-              <div class="machine-bottom"><span class="mini-dots">▪ ▪ ▪</span><span>LET THE GEMS ALIGN.</span></div>
-            </div>
-            <div class="floating-tag combo-tag"><span class="tiny-label">NICE CONNECTION</span><strong>COMBO <b>×5</b></strong><span class="tag-caption">再送一組，讓好事成雙。</span></div>
-            <div class="floating-tag star-tag"><div class="gold">★ ★ ★</div><span>一局，再多一顆星。</span></div>
-          </div>
+          <div id="campaign-welcome" class="campaign-welcome"></div>
         </div>
         <div class="home-bottom">
-          <div class="section-kicker"><span>HOW TO PLAY</span><span>簡單三步，進入心流。</span></div>
+          <div class="section-kicker"><span>THREE LITTLE CONNECTIONS</span><span>三段挑戰，一起探索。</span></div>
           <div class="rule-grid">
-            <div class="rule-card"><span class="rule-number">01</span><div><h2>同色相遇</h2><p>點選兩顆相同寶石，最多轉彎兩次。</p></div><span class="rule-art">◇—◇</span></div>
-            <div class="rule-card"><span class="rule-number">02</span><div><h2>讓連擊發生</h2><p>每次間隔 2 秒內，連消五組送一組。</p></div><span class="rule-art">×5</span></div>
-            <div class="rule-card"><span class="rule-number">03</span><div><h2>把星星帶走</h2><p>越快清空棋盤，收集越多通關星星。</p></div><span class="rule-art gold">★</span></div>
+            <div class="rule-card"><span class="rule-number">01</span><div><h2>找到相同圖案</h2><p>最多轉彎兩次；5 秒內接續配對，累積連擊。</p></div></div>
+            <div class="rule-card"><span class="rule-number">02</span><div><h2>連起兩瓶 PPA</h2><p>合法配對白底瓶子，依連擊額外消除 1～5 對。</p></div></div>
+            <div class="rule-card"><span class="rule-number">03</span><div><h2>完成三關之旅</h2><p>收集通關星星，也認識 PPA 的日常照護提案。</p></div></div>
           </div>
+          <div id="campaign-replay" class="journey-steps" aria-label="活動關卡與重玩"></div>
         </div>
+        <section id="campaign-information" class="campaign-information" aria-labelledby="information-heading" tabindex="-1">
+          <div class="information-intro"><p class="eyebrow">MEET YOUR DAILY COMPANION</p><h2 id="information-heading">認識 PPA<br>與活動贈禮</h2><p>把保養，放進每天的生活節奏。</p></div>
+          <div id="campaign-products"></div>
+        </section>
+        <div class="free-challenge"><div><p class="eyebrow">DOT TO DOT · FREE PLAY</p><h2>還想多連幾道光？</h2><p>16 關自由挑戰，繼續收集你的星星。原有進度與紀錄都在。</p></div><button class="button button-secondary" data-action="levels">進入自由挑戰 <svg class="icon"><use href="#i-arrow"/></svg></button></div>
       </section>
 
       <section id="levels-view" class="view levels-view" hidden aria-labelledby="levels-heading">
-        <div class="page-intro"><div><button class="text-button back-home" data-action="home"><svg class="icon"><use href="#i-back"/></svg> 返回首頁</button><div class="eyebrow">CHOOSE YOUR NEXT CONNECTION</div><h1 id="levels-heading">每一關，都是新的相遇。</h1><p>選一關開始。已解鎖的關卡，隨時都能再挑戰。</p></div><div class="collection"><span class="gold">★</span><strong id="star-total">00</strong><span>/ 48<br><small>已收集星星</small></span></div></div>
+        <div class="page-intro"><div><button class="text-button back-home" data-action="home"><svg class="icon"><use href="#i-back"/></svg> 返回首頁</button><div class="eyebrow">CHOOSE YOUR NEXT CONNECTION</div><h1 id="levels-heading">自由挑戰，連起下一顆星。</h1><p>16 關獨立挑戰。已解鎖的關卡，隨時都能再挑戰。</p></div><div class="collection"><span class="gold">★</span><strong id="star-total">00</strong><span>/ 48<br><small>已收集星星</small></span></div></div>
         <div id="level-grid" class="level-grid"></div>
         <p class="save-note"><span class="status-dot"></span><span id="save-note">進度會自動儲存在這個瀏覽器。</span></p>
       </section>
 
       <section id="game-view" class="view game-view" hidden aria-labelledby="game-heading">
-        <div class="game-topline"><button class="text-button" data-action="leave"><svg class="icon"><use href="#i-back"/></svg> 關卡選擇</button><span id="game-stage-label" class="mono muted">STAGE 01 / 16</span><button class="text-button" data-action="pause"><svg class="icon"><use href="#i-pause"/></svg> 暫停</button></div>
+        <div class="game-topline"><button id="game-back" class="text-button" data-action="leave"><svg class="icon"><use href="#i-back"/></svg> 關卡選擇</button><span id="game-stage-label" class="mono muted">STAGE 01 / 16</span><button class="text-button" data-action="pause"><svg class="icon"><use href="#i-pause"/></svg> 暫停</button></div>
+        <p id="campaign-game-note" class="campaign-game-note" hidden>找到相同圖案，最多轉彎兩次。5 秒內接續連擊；白底 PPA 也要兩瓶合法配對。</p>
         <div class="game-layout">
           <div class="play-column">
             <div class="game-heading-row"><div><div class="eyebrow">MAKE A LITTLE MAGIC</div><h1 id="game-heading">第 1 關</h1></div><div class="score-display"><span>本次分數</span><strong id="score">00000</strong></div></div>
             <div class="timer-panel"><div class="timer-heading"><span><svg class="icon"><use href="#i-clock"/></svg> 剩餘時間 <strong id="time-text">01:30</strong></span><span class="live-rating"><span>目前評價</span><span id="live-stars" class="stars"></span></span></div><div id="timer-track" class="timer-track" role="progressbar" aria-label="剩餘時間" aria-valuemin="0" aria-valuemax="100"><div id="timer-fill" class="timer-fill"></div><span class="time-mark mark-25" aria-hidden="true"></span><span class="time-mark mark-50" aria-hidden="true"></span></div></div>
             <div id="board-shell" class="board-shell"><div class="board-corner corner-tl"></div><div class="board-corner corner-tr"></div><div class="board-corner corner-bl"></div><div class="board-corner corner-br"></div><div id="board" class="board" role="group" aria-label="寶石棋盤"></div><svg id="connection-layer" class="connection-layer" aria-hidden="true"></svg><div id="board-message" class="board-message" hidden></div></div>
+            <div id="ppa-status" class="ppa-status" role="status" aria-live="polite" hidden></div>
           </div>
           <aside class="game-sidebar">
             <div class="side-panel stage-panel">
               <div class="combo-heading"><h2>COMBO</h2><span id="combo-count">0</span></div>
+              <div id="ppa-info" class="ppa-info" hidden>此刻配對 PPA：最多消 <b id="ppa-power">1</b> 對<small>包含這次手動連擊；不足則消實際對數。</small></div>
+              <p id="ppa-notice" class="ppa-notice" hidden></p>
               <div class="stage-detail"><span>寶石種類</span><b id="color-count">5 色</b></div><div id="palette" class="palette"></div><div class="stage-detail"><span>牆壁機關</span><b id="wall-count">無</b></div><div class="panel-divider"></div><div class="stage-detail"><span>最佳星級</span><span id="best-stars" class="stars"></span></div><div class="stage-detail"><span>最高分數</span><b id="best-score">—</b></div><div class="stage-detail"><span>最快通關</span><b id="best-time">—</b></div>
             </div>
           </aside>

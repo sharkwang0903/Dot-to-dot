@@ -6,10 +6,11 @@ const path = require('node:path');
 let now = 1000, serial = 0;
 const jobs = new Map(), events = {}, nodes = new Map();
 function node(id) {
-  if (!nodes.has(id)) nodes.set(id, { innerHTML:'',textContent:'',style:{},classList:{add(){},remove(){}},addEventListener(){},inert:false });
+  if (!nodes.has(id)) nodes.set(id, { innerHTML:'',textContent:'',style:{},dataset:{},classList:{add(){},remove(){}},addEventListener(){},inert:false });
   return nodes.get(id);
 }
 const context = { console, performance:{now:()=>now}, localStorage:{getItem:()=>null,setItem(){}},
+  matchMedia:()=>({matches:false}),
   setTimeout(fn,ms){const id=++serial;jobs.set(id,{fn,at:now+ms});return id;},clearTimeout(id){jobs.delete(id);},
   requestAnimationFrame(fn){const id=++serial;jobs.set(id,{fn,at:now+16});return id;},cancelAnimationFrame(id){jobs.delete(id);},
   document:{hidden:false,querySelectorAll:()=>[],addEventListener(name,fn){events[name]=fn;}},
@@ -18,13 +19,14 @@ const context = { console, performance:{now:()=>now}, localStorage:{getItem:()=>
 context.window=context;vm.createContext(context);
 for(const file of ['levels','engine','storage'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../js',file+'.js'),'utf8'),context);
 const D=context.DotGame;
+D.CampaignUI={home(){}};
 let rendered=[], clockValue=0, dialog='', comboCount=0, rewardEffects=0;
 D.Audio={play(){}};
 D.UI={
   $:node,icon:()=>'',stars:n=>`stars:${n}`,clock:n=>String(n),formatTime:n=>String(n),
   showView(){},levels(){},setupStage(){},board(grid){rendered=grid.map(row=>row.slice());},
   select(){},cell:()=>node('tile'),updateTime(ms){clockValue=ms;},combo(count){comboCount=count;},line(path,grid,bonus){if(bonus)rewardEffects++;},clearLine(){},message(){},
-  soundButton(){},toast(){},modal(html){dialog=html;node('modal').open=true;},closeModal(){dialog='';node('modal').open=false;},pixelTitle(){},demo(){}
+  ppaFeedback(){},clearPPA(){},clearToast(){},soundButton(){},toast(){},modal(html){dialog=html;node('modal').open=true;},closeModal(){dialog='';node('modal').open=false;},pixelTitle(){},demo(){}
 };
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/game.js'),'utf8'),context);
 function advance(ms){const target=now+ms;for(let safe=0;safe<100000;safe++){let entry=[...jobs].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>target)break;now=entry[1].at;jobs.delete(entry[0]);entry[1].fn();}now=target;}
@@ -40,32 +42,31 @@ console.log('PASS: 暫停 90 秒不消耗關卡時間，恢復後繼續倒數');
 
 // 同色大棋盤確保長連擊測試不受隨機牌面、洗牌或提早通關影響。
 const originalLevel = D.LEVELS[0];
-D.LEVELS[0] = { ...originalLevel, cols:10, rows:6, tiles:60, colors:1, poolSize:1, layout:Array(6).fill('XXXXXXXXXX') };
+D.LEVELS[0] = { ...originalLevel, ppaPairs:0, cols:10, rows:6, tiles:60, colors:1, poolSize:1, layout:Array(6).fill('XXXXXXXXXX') };
 click('retry');advance(650);
 rewardEffects = 0;
 let expectedScore = 0;
 for(let n=1;n<=16;n++) {
   const before = D.Engine.cells(rendered).length;
   match();
-  const isReward = n % 5 === 0;
-  expectedScore += 100 + (n - 1) * 25 + (isReward ? 100 : 0);
+  expectedScore += 100 + (n - 1) * 25;
   assert.equal(comboCount, n, `第 ${n} 擊持續累積`);
   assert.equal(Number(node('score').textContent), expectedScore, `第 ${n} 擊得分`);
-  assert.equal(rewardEffects, Math.floor(n / 5), '僅第 5、10、15 擊各觸發一次獎勵');
-  assert.equal(before - D.Engine.cells(rendered).length, isReward ? 4 : 2, '獎勵配對不計入連擊');
-  if(n === 5) assert.equal(expectedScore,850);
-  if(n === 10) assert.equal(expectedScore,2325);
+  assert.equal(rewardEffects, 0, '第 5、10、15 擊都不再自動消除');
+  assert.equal(before - D.Engine.cells(rendered).length, 2, '普通配對僅移除兩顆');
+  if(n === 5) assert.equal(expectedScore,750);
+  if(n === 10) assert.equal(expectedScore,2125);
   if(n === 6) { click('pause'); advance(30000); click('resume'); }
   if(n < 16) advance(100);
 }
-// 正好 2 秒仍延續；超過 2 秒即重新從第一擊、100 分開始。
-advance(2000);match();expectedScore += 500;
+// 正好 5 秒仍延續；超過 5 秒即重新從第一擊、100 分開始。
+advance(5000);match();expectedScore += 500;
 assert.equal(comboCount,17);assert.equal(Number(node('score').textContent),expectedScore);
-advance(2000.01);match();
+advance(5000.01);match();
 assert.equal(comboCount,1);assert.equal(Number(node('score').textContent),expectedScore+100);
-assert.equal(rewardEffects,3);
+assert.equal(rewardEffects,0);
 D.LEVELS[0] = originalLevel;
-console.log('PASS: 連擊跨越 5、10、15 持續加分且各獎勵一次，暫停保留連擊，2 秒邊界與超時重置正確');
+console.log('PASS: 連擊跨越 5、10、15 持續加分但不再自動消除，暫停、5 秒邊界與超時重置正確');
 
 click('retry');advance(650);advance(90001);advance(150);
 assert.equal(clockValue,0);assert.match(dialog,/時間到了/);assert.equal(Object.keys(D.Storage.get().records).length,0);
@@ -73,8 +74,11 @@ const countAtLoss=D.Engine.cells(rendered).length;tile(D.Engine.cells(rendered)[
 console.log('PASS: 倒數歸零失敗、停止接受配對、不保存失敗紀錄');
 
 click('retry');advance(650);
-for(let steps=0;D.Engine.cells(rendered).length&&steps<40;steps++){match();advance(100);if(!D.Engine.findMove(rendered)&&D.Engine.cells(rendered).length)advance(650);}
-advance(500);assert.match(dialog,/第 1 關完成/);assert.equal(D.Storage.get().records[1].stars,3);assert.equal(D.Storage.get().unlocked,2);
+for(let steps=0;D.Engine.cells(rendered).length&&steps<40;steps++){
+  match();advance(100);
+  for(let wait=0;node('board').inert&&D.Engine.cells(rendered).length&&wait<40;wait++)advance(100);
+}
+advance(800);assert.match(dialog,/第 1 關完成/);assert.equal(D.Storage.get().records[1].stars,3);assert.equal(D.Storage.get().unlocked,2);
 const savedScore=D.Storage.get().records[1].score;
 click('play',2);advance(650);assert.equal(clockValue,120000);assert.equal(node('score').textContent,'00000');
 click('retry');advance(650);assert.equal(D.Storage.get().records[1].score,savedScore);
@@ -104,10 +108,12 @@ for (let id = 8; id <= 16; id++) {
 console.log('PASS: 第 8～16 關完整流程可通關，下一關與最終結算正確');
 
 // 使用實際 UI 繪製函式，檢查精簡介面只更新當前連擊數。
-const uiContext = { DotGame:{}, document:{getElementById:node} };
+const uiContext = { DotGame:{Engine:D.Engine}, document:{getElementById:node} };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../js/ui.js'),'utf8'),uiContext);
 for(const count of [0,1,4,5,6,9,10,11,15,16,100,101]) {
   uiContext.DotGame.UI.combo(count);
   assert.equal(node('combo-count').textContent,String(count));
+  assert.equal(node('ppa-power').textContent,String(Math.min(5,count+1)));
+  assert.equal(node('board').dataset.ppaPower,String(Math.min(5,count+1)));
 }
 console.log('PASS: COMBO 顯示當前連擊數，包含零與超過五次的連擊');

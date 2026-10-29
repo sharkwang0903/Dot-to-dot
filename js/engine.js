@@ -92,8 +92,12 @@ DotGame.Engine = (() => {
   }
   function createBoard(level, rng = Math.random) {
     const palette = shuffle(DotGame.GEMS.slice(0, level.poolSize).map(g => g.id), rng).slice(0, level.colors);
+    const ppaPairs = level.ppaPairs || 0, ordinaryPairs = level.tiles / 2 - ppaPairs;
+    if (!Number.isInteger(ppaPairs) || ppaPairs < 0 || !Number.isInteger(ordinaryPairs) || ordinaryPairs < level.colors)
+      throw new Error('關卡必須保留完整 PPA 配對，以及每色至少一組普通寶石。');
     const values = [];
-    for (let pair = 0; pair < level.tiles / 2; pair++) values.push(palette[pair % palette.length], palette[pair % palette.length]);
+    for (let pair = 0; pair < ordinaryPairs; pair++) values.push(palette[pair % palette.length], palette[pair % palette.length]);
+    for (let pair = 0; pair < ppaPairs; pair++) values.push(DotGame.PPA.id, DotGame.PPA.id);
     const mixed = shuffle(values, rng);
     let i = 0;
     const grid = Array.from({ length: level.rows + 2 }, () => Array(level.cols + 2).fill(0));
@@ -104,12 +108,24 @@ DotGame.Engine = (() => {
   }
   function randomPair(grid, rng = Math.random) {
     const groups = new Map();
-    cells(grid).forEach(p => { if (!groups.has(p.value)) groups.set(p.value, []); groups.get(p.value).push(p); });
+    cells(grid).filter(p => !isPPA(p.value)).forEach(p => { if (!groups.has(p.value)) groups.set(p.value, []); groups.get(p.value).push(p); });
     const eligible = [...groups.values()].filter(group => group.length >= 2);
     if (!eligible.length) return null;
     return shuffle(eligible[Math.floor(rng() * eligible.length)], rng).slice(0, 2);
   }
+  const isPPA = value => value === DotGame.PPA.id;
+  // 初版強度：更新後的手動 Combo，最多五對；只隨機選目標。
+  const ppaStrength = combo => Math.min(DotGame.PPA.maxPairs, Math.max(1, combo));
+  function ppaTargets(grid, combo, rng = Math.random) {
+    const copy = grid.map(row => row.slice()), pairs = [];
+    for (let i = 0; i < ppaStrength(combo); i++) {
+      const pair = randomPair(copy, rng);
+      if (!pair) break;
+      pairs.push(pair); pair.forEach(p => { copy[p.r][p.c] = 0; });
+    }
+    return pairs;
+  }
   const stars = (remaining, total) => remaining <= 0 ? 0 : remaining / total > .5 ? 3 : remaining / total >= .25 ? 2 : 1;
-  const nextCombo = (count, lastAt, now) => lastAt !== null && now - lastAt <= 2000 ? count + 1 : 1;
-  return { equal, shuffle, cells, findPath, findMove, reshuffle, createBoard, randomPair, stars, nextCombo };
+  const nextCombo = (count, lastAt, now) => lastAt !== null && now - lastAt <= DotGame.COMBO_WINDOW_MS ? count + 1 : 1;
+  return { equal, shuffle, cells, findPath, findMove, reshuffle, createBoard, randomPair, isPPA, ppaStrength, ppaTargets, stars, nextCombo };
 })();

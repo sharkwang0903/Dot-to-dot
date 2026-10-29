@@ -57,6 +57,19 @@ for (let round = 0; round < 700; round++) {
 console.log('PASS: 700 個隨機棋盤的連線結果與獨立搜尋一致');
 
 let games = 0, shuffles = 0, bonuses = 0;
+for (const [index, ordinary, ppa, colors, seconds] of [[0,28,2,7,90],[1,40,4,7,120],[2,42,6,8,135]]) {
+  const level = LEVELS[index];
+  check(level.tiles === ordinary + ppa && level.ppaPairs * 2 === ppa && level.colors === colors && level.seconds === seconds, '前三關固定總牌數、普通色數、限時及 PPA 配對數');
+  for (let run = 0; run < 20; run++) {
+    const { grid } = E.createBoard(level, rng), mixed = E.reshuffle(grid, rng);
+    check(E.cells(mixed).filter(p => E.isPPA(p.value)).length === ppa, '多對 PPA 洗牌保留全部數量');
+    check(E.cells(mixed).filter(p => !E.isPPA(p.value)).length === ordinary, '普通牌數不變');
+    check(E.cells(grid).map(p => p.value).sort().join(',') === E.cells(mixed).map(p => p.value).sort().join(','), '洗牌保留每一種類的數量');
+    grid.forEach((row,r) => row.forEach((v,c) => check(v > 0 ? mixed[r][c] > 0 : mixed[r][c] === v, '多對 PPA 洗牌仍保留格位及留白')));
+    for (const pair of E.ppaTargets(mixed, 5, rng)) check(pair.every(p => !E.isPPA(p.value)), '自動消除排除所有 PPA');
+  }
+}
+check(LEVELS.slice(3).every(level => !level.ppaPairs), '第 4～16 關不加入 PPA');
 for (const level of LEVELS) {
   check(level.tiles % 2 === 0, `第 ${level.id} 關牌數成對`);
   check(level.layout.every(row => row.length === level.cols), '版型每列等寬');
@@ -75,7 +88,8 @@ for (const level of LEVELS) {
   const signatures = new Set(), palettes = new Set();
   for (let run = 0; run < 35; run++) {
     let { grid, palette } = E.createBoard(level, rng);
-    check(new Set(E.cells(grid).map(p => p.value)).size === level.colors, '顏色種類固定');
+    check(new Set(E.cells(grid).filter(p => !E.isPPA(p.value)).map(p => p.value)).size === level.colors, '普通顏色種類固定');
+    check(E.cells(grid).filter(p => E.isPPA(p.value)).length === (level.ppaPairs || 0) * 2, 'PPA 完整成對且只在指定關卡');
     check(palette.every(id => id <= level.poolSize), '寶石依關卡逐步加入集合');
     for (const color of palette) check(E.cells(grid).filter(p => p.value === color).length % 2 === 0, '每種顏色成對');
     check(E.cells(grid).length === level.tiles, '牌數正確');
@@ -93,10 +107,11 @@ for (const level of LEVELS) {
         move = E.findMove(grid); check(move, '洗牌後有合法配對');
       }
       verifyRoute(grid, move.a, move.b, move.path);
+      const ppa = E.isPPA(grid[move.a.r][move.a.c]);
       grid[move.a.r][move.a.c] = grid[move.b.r][move.b.c] = 0;
-      if (steps % 5 === 0) {
-        const pair = E.randomPair(grid, rng);
-        if (pair) { check(pair[0].value === pair[1].value, '獎勵為同色一組'); pair.forEach(p => { grid[p.r][p.c] = 0; }); bonuses++; }
+      if (ppa) for (const pair of E.ppaTargets(grid, steps, rng)) {
+        check(pair[0].value === pair[1].value && !E.isPPA(pair[0].value), 'PPA 只消普通同色完整配對');
+        pair.forEach(p => { grid[p.r][p.c] = 0; }); bonuses++;
       }
     }
     check(grid.flat().filter(v => v === -1).length === level.walls, '通關不消除牆'); games++;
@@ -110,9 +125,26 @@ const stuck = [[0,0,0,0],[0,1,2,0],[0,2,1,0],[0,0,0,0]];
 check(!E.findMove(stuck), '測試棋盤沒有合法組合');
 const fixed = E.reshuffle(stuck, () => .99999);
 check(E.findMove(fixed), '隨機重試失敗後保底仍有合法組合');
+const special = context.DotGame.PPA.id;
+const ppaStuck = stuck.map(row => row.map(v => v === 1 ? special : v));
+const ppaFixed = E.reshuffle(ppaStuck, () => .99999);
+check(E.findMove(ppaFixed) && E.cells(ppaFixed).filter(p => E.isPPA(p.value)).length === 2, '保底洗牌保留 PPA');
+const mixed = [[0,0,0,0,0,0],[0,special,1,2,1,0],[0,2,special,3,3,0],[0,0,0,0,0,0]];
+const original = JSON.stringify(mixed);
+for (const combo of [1,2,5,6,50]) {
+  const targets = E.ppaTargets(mixed, combo, rng);
+  check(targets.length === Math.min(combo,3), '目標對數依連擊並受剩餘對數限制');
+  check(new Set(targets.flat().map(p => `${p.r},${p.c}`)).size === targets.length * 2, '目標不重複');
+  check(targets.flat().every(p => !E.isPPA(p.value)), '自動消除永遠排除 PPA');
+  check(JSON.stringify(mixed) === original, '規劃效果不提早改動棋盤');
+}
+check(E.ppaTargets([[0,0,0,0],[0,special,special,0],[0,0,0,0]],5).length === 0, '只剩 PPA 時零對');
+check(E.ppaStrength(0) === 1 && E.ppaStrength(5) === 5 && E.ppaStrength(100) === 5, 'PPA 強度上下限');
+assert.throws(() => E.createBoard({ ...LEVELS[0], ppaPairs: 10 }), /完整 PPA/);
 check([0,1,2,3].map(i => E.stars([0, 1, 25, 50.001][i], 100)).join(',') === '0,1,2,3', '星級基本門檻');
 check(E.stars(50,100) === 2 && E.stars(24.999,100) === 1 && E.stars(25,100) === 2, '星級邊界精確');
-check(E.nextCombo(4,100,2100) === 5 && E.nextCombo(4,100,2100.01) === 1, '連擊 2000ms 包含邊界');
+check(context.DotGame.COMBO_WINDOW_MS === 5000, '連擊窗口統一為五秒');
+check(E.nextCombo(4,100,5100) === 5 && E.nextCombo(4,100,5100.01) === 1, '連擊 5000ms 包含邊界');
 check(E.nextCombo(5,100,500) === 6 && E.nextCombo(0,null,500) === 1, '第六擊延續與首次連擊');
 check(E.nextCombo(10,100,500) === 11 && E.nextCombo(100,100,500) === 101, '連擊持續累積，不受五或十次限制');
 S.record(1, { stars:3,score:1000,time:20 }); S.record(1,{ stars:1,score:500,time:40 });

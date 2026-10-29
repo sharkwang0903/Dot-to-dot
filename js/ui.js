@@ -22,10 +22,35 @@ DotGame.UI = (() => {
     spark: '<path d="M11 7h2v4h4v2h-4v4h-2v-4H7v-2h4zM7 7h2v2H7zm8 8h2v2h-2z"/>'
   };
   function gem(id) {
+    // 實品比例：高透明蓋內有按壓頭，圓肩接修長白色圓柱瓶身。
+    if (DotGame.Engine.isPPA(id)) return `<svg class="gem ppa-bottle" viewBox="0 0 32 56" shape-rendering="crispEdges" aria-hidden="true">
+      <path fill="#74788f" d="M10 1h12v1h2v20h-2v2H10v-2H8V2h2z"/>
+      <path fill="#dcebf1" d="M10 2h12v1h1v18H9V3h1z"/>
+      <path fill="#f7fcfc" d="M12 8h8v2h-2v3h2v7H12v-7h2v-3h-2z"/>
+      <path fill="#b6bfce" d="M12 8h8v1h-8zm5 2h2v3h-2zm2 3h2v7h-2z"/>
+      <path fill="#fff" d="M12 7h8v1h-8zm0 1h2v2h-2z"/>
+      <path fill="#b8d6e1" opacity=".55" d="M9 3h2v17H9zm11 0h3v18h-3z"/>
+      <path fill="#fff" d="M10 3h1v14h-1zm1-1h8v1h-8zm11 2h1v5h-1z"/>
+      <path fill="#a3a9bd" d="M9 21h14v2H9z"/><path fill="#eef4f3" d="M10 21h11v1H10z"/>
+      <path fill="#79748b" d="M10 23h12v1h2v2h2v3h1v22h-1v2h-2v1H8v-1H6v-2H5V29h1v-3h2v-2h2z"/>
+      <path fill="#e8e7ec" d="M10 24h12v1h2v2h1v3h1v20h-1v2h-2v1H9v-1H7v-2H6V30h1v-3h1v-2h2z"/>
+      <path fill="#fffef7" d="M10 24h10v1h2v2h1v24h-2v2H10v-1H8v-2H7V29h1v-3h2z"/>
+      <path fill="#fff" d="M10 25h3v2h-2v3H9v19H8V30h1v-3h1z"/>
+      <path fill="#d1ccde" d="M23 27h1v3h1v20h-1v2h-3v1h-9v-1h9v-2h2z"/>
+      <path fill="#b8b3cc" d="M25 30h1v20h-1zm-1 20h1v2h-2v-1h1z"/>
+      <path fill="#765396" d="M11 32h6v2h-6zm7 0h3v1h-3zm-6 4h3v1h-3zm5 0h3v1h-3z"/>
+      <path fill="#705087" d="M13 40h6v1h2v2h1v3h-2v-1h-1v2h-1v1h-2v-1h-1v1h-2v-1h-1v-2h-1v1H9v-3h1v-2h3z"/>
+      <path fill="#ad92ca" d="M13 41h5v1h2v2H11v-1h2z"/>
+      <path fill="#fffdf7" d="M12 44h7v2h-1v1h-1v-1h-2v1h-1v-1h-1v-1h-1z"/>
+      <path fill="#5c3e78" d="M13 44h1v1h-1zm4 0h1v1h-1z"/>
+      <path fill="#c0a8dc" d="M21 39h1v1h1v1h-1v1h-1v-1h-1v-1h1z"/>
+    </svg>`;
     const g = DotGame.GEMS[id - 1];
     return `<svg class="gem" viewBox="0 0 24 27" shape-rendering="crispEdges" aria-hidden="true"><path fill="${g.dark}" d="M6 1h12v3h3v3h2v12h-3v3h-3v3H7v-3H4v-3H1V7h2V4h3z"/><path fill="${g.color}" d="M6 3h12v3h3v11h-3v4h-4v2h-4v-2H6v-4H3V7h3z"/><path fill="${g.light}" d="M6 3h12v3H9v3H6v7H3V7h3z"/><path fill="${g.dark}" opacity=".65" d="M18 9h3v8h-3v4h-4v2h-4v-3h6v-4h2z"/><g fill="${g.light}" opacity=".85">${marks[g.mark]}</g><path fill="#fff" opacity=".6" d="M6 4h3v3H6z"/></svg>`;
   }
   const wall = '<svg class="wall-art" viewBox="0 0 30 28" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 3h11v6H2zm14 0h12v6H16zM2 12h5v6H2zm8 0h12v6H10zm15 0h3v6h-3zM2 21h11v5H2zm14 0h12v5H16z"/></svg>';
+  // 一至五顆星點直接對應目前可觸發強度；不是另一套能量值。
+  const ppaSparks = `<svg class="ppa-sparks" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true">${[[13,18],[85,76],[15,78],[84,20],[12,48]].map(([x,y],i)=>`<path class="ppa-spark spark-${i+1}" d="M${x-1} ${y-5}h2v4h4v2h-4v4h-2v-4h-4v-2h4z"/>`).join('')}</svg>`;
   function pixelTitle() {
     const letters = { D: ['11110','10001','10001','10001','10001','10001','11110'], O: ['01110','11011','10001','10001','10001','11011','01110'], T: ['11111','00100','00100','00100','00100','00100','00100'] };
     const word = (text, x, y, color) => [...text].map((letter, n) => letters[letter]?.map((row, r) => [...row].map((v, c) => v === '1' ? `<rect x="${x + n * 6 + c}" y="${y + r}" width="1" height="1" fill="${color}"/>` : '').join('')).join('')).join('');
@@ -39,6 +64,8 @@ DotGame.UI = (() => {
     document.body.dataset.view = name;
     document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== `${name}-view`; });
     window.scrollTo({ top: 0, behavior: 'instant' });
+    const heading = document.querySelector(`#${name}-view h1`);
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
   }
   function levels() {
     const data = DotGame.Storage.get();
@@ -50,17 +77,23 @@ DotGame.UI = (() => {
     }).join('');
     $('save-note').textContent = DotGame.Storage.persistent() ? '進度會自動儲存在這個瀏覽器。' : '瀏覽器目前無法儲存，關閉頁面後紀錄可能消失。';
   }
-  function setupStage(level, palette) {
-    const rec = DotGame.Storage.get().records[level.id];
+  function setupStage(level, palette, mode = 'free') {
+    const campaign = mode === 'campaign';
+    const rec = (campaign ? DotGame.CampaignStorage : DotGame.Storage).get().records[level.id];
     $('game-heading').textContent = `第 ${level.id} 關`;
-    $('game-stage-label').textContent = `STAGE ${String(level.id).padStart(2, '0')} / ${DotGame.LEVELS.length}`;
+    $('game-stage-label').textContent = campaign ? `PPA JOURNEY ${level.id} / 3` : `STAGE ${String(level.id).padStart(2, '0')} / ${DotGame.LEVELS.length}`;
+    $('game-back').innerHTML = `${icon('back')} ${campaign ? '活動首頁' : '關卡選擇'}`;
+    $('campaign-game-note').hidden = !campaign;
     $('color-count').textContent = `${level.colors} 色`;
     $('palette').innerHTML = palette.map(id => `<span title="${DotGame.GEMS[id - 1].name}色寶石">${gem(id)}</span>`).join('');
     $('wall-count').textContent = level.walls ? `${level.walls} 格` : '無';
     $('best-stars').innerHTML = stars(rec?.stars || 0);
     $('best-score').textContent = rec ? rec.score.toLocaleString() : '—';
     $('best-time').textContent = rec ? formatTime(rec.time) : '—';
-    $('board-shell').classList.remove('cleared', 'paused', 'shuffling');
+    $('board-shell').classList.remove('cleared', 'paused', 'shuffling', 'ppa-active');
+    $('ppa-info').hidden = !level.ppaPairs;
+    $('ppa-notice').hidden = !level.ppaPairs;
+    $('ppa-notice').innerHTML = level.ppaPairs ? `${gem(DotGame.PPA.id)}<span>本關 ${level.ppaPairs} 對 PPA（${level.ppaPairs * 2} 顆）。任意兩瓶合法連線，依連擊額外消除 1～5 對普通寶石。</span>` : '';
     $('board').style.setProperty('--cols', level.cols + 2);
     $('board').style.setProperty('--rows', level.rows + 2);
     $('board').style.setProperty('--inner-cols', level.cols);
@@ -69,6 +102,8 @@ DotGame.UI = (() => {
     clearLine(); message('');
   }
   function board(grid, selected) {
+    const hasPPA = grid.some(row => row.some(DotGame.Engine.isPPA));
+    $('ppa-info').hidden = !hasPPA; $('ppa-notice').hidden = !hasPPA;
     const focus = document.activeElement?.closest('[data-cell]');
     const focusKey = focus?.dataset.cell;
     $('board').innerHTML = grid.map((row, r) => row.map((value, c) => {
@@ -77,7 +112,8 @@ DotGame.UI = (() => {
       if (!value) return '<span class="board-cell empty" aria-hidden="true"></span>';
       if (value === -1) return `<span class="board-cell wall" role="img" aria-label="牆壁，第 ${r} 列第 ${c} 格">${wall}</span>`;
       const isSelected = selected && selected.r === r && selected.c === c;
-      return `<button class="board-cell ${isSelected ? 'selected' : ''}" data-cell="${r},${c}" data-r="${r}" data-c="${c}" aria-label="${DotGame.GEMS[value - 1].name}色寶石，第 ${r} 列第 ${c} 格" aria-pressed="${!!isSelected}">${gem(value)}</button>`;
+      const ppa = DotGame.Engine.isPPA(value);
+      return `<button class="board-cell ${ppa ? 'ppa-tile' : ''} ${isSelected ? 'selected' : ''}" data-cell="${r},${c}" data-r="${r}" data-c="${c}" aria-label="${ppa ? 'PPA 特殊瓶子' : DotGame.GEMS[value - 1].name + '色寶石'}，第 ${r} 列第 ${c} 格" aria-pressed="${!!isSelected}">${ppa ? ppaSparks : ''}${gem(value)}</button>`;
     }).join('')).join('');
     if (focusKey) {
       const replacement = document.querySelector(`[data-cell="${focusKey}"]`) || $('board').querySelector('button');
@@ -105,6 +141,16 @@ DotGame.UI = (() => {
   }
   function combo(count) {
     $('combo-count').textContent = String(count);
+    const power = String(DotGame.Engine.ppaStrength(count + 1));
+    $('ppa-power').textContent = power;
+    $('board').dataset.ppaPower = power;
+  }
+  function ppaFeedback(done, total) {
+    $('ppa-status').textContent = total ? `PPA · ${done} / ${total} 對` : 'PPA · 已無普通配對';
+    $('ppa-status').hidden = false;
+  }
+  function clearPPA() {
+    $('board-shell').classList.remove('ppa-active'); $('ppa-status').hidden = true;
   }
   function line(path, grid, bonus = false) {
     const boardEl = $('board'), layer = $('connection-layer');
@@ -128,6 +174,7 @@ DotGame.UI = (() => {
     document.querySelectorAll('.sound-toggle').forEach(el => { el.innerHTML = icon(on ? 'sound' : 'mute'); el.setAttribute('aria-label', on ? '關閉音效' : '開啟音效'); el.setAttribute('aria-pressed', String(on)); });
   }
   let toastTimer;
+  function clearToast() { clearTimeout(toastTimer); $('toast').classList.remove('visible'); }
   function toast(text) {
     clearTimeout(toastTimer); $('toast').textContent = text; $('toast').classList.add('visible');
     toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2600);
@@ -137,7 +184,9 @@ DotGame.UI = (() => {
     const heading = $('modal-content').querySelector('h2');
     if (heading) { heading.id = 'dialog-heading'; $('modal').setAttribute('aria-labelledby', 'dialog-heading'); }
     if (!$('modal').open) $('modal').showModal();
+    $('modal').scrollTop = 0;
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
   }
-  function closeModal() { if ($('modal').open) $('modal').close(); }
-  return { $, icon, stars, clock, formatTime, gem, pixelTitle, demo, showView, levels, setupStage, board, select, cell, updateTime, combo, line, clearLine, message, soundButton, toast, modal, closeModal };
+  function closeModal() { if ($('modal').open) $('modal').close(); $('modal').classList.remove('campaign-modal', 'reward-modal'); }
+  return { $, icon, stars, clock, formatTime, gem, pixelTitle, demo, showView, levels, setupStage, board, select, cell, updateTime, combo, ppaFeedback, clearPPA, line, clearLine, message, soundButton, toast, clearToast, modal, closeModal };
 })();

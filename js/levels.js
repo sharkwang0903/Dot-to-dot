@@ -1,5 +1,6 @@
 /* 關卡與像素寶石資料。X = 寶石、# = 牆、. = 留白。 */
 window.DotGame = window.DotGame || {};
+DotGame.COMBO_WINDOW_MS = 5000;
 DotGame.GEMS = [
   { id: 1, name: '紅', color: '#f46b87', light: '#ffc0c9', dark: '#9b345d', mark: 'cross' },
   { id: 2, name: '藍', color: '#60aff4', light: '#c0e5ff', dark: '#3463ac', mark: 'bar' },
@@ -17,10 +18,12 @@ DotGame.GEMS = [
   { id: 14, name: '孔雀', color: '#299d8a', light: '#a5f4dc', dark: '#176052', mark: 'hourglass' },
   { id: 15, name: '珊瑚', color: '#eb927f', light: '#ffe0cd', dark: '#a55650', mark: 'spark' }
 ];
+// PPA 不屬於十五色寶石集合；正值 ID 讓它沿用相同的連線與洗牌規則。
+DotGame.PPA = { id: 100, maxPairs: 5, pairScore: 100 };
 DotGame.LEVELS = [
-  { id: 1, colors: 7, seconds: 90,  layout: ['XXXXXX','XXXXXX','XXXXXX','XXXXXX','XXXXXX'] },
-  { id: 2, colors: 7, seconds: 120, layout: ['.XXXXXX.','XXXXXXXX','XXXXXXXX','XXXXXXXX','XXXXXXXX','.XXXXXX.'] },
-  { id: 3, colors: 8, seconds: 135, layout: ['..XXXX..','.XXXXXX.','XXXXXXXX','XXX..XXX','XXX..XXX','XXXXXXXX','.XXXXXX.','..XXXX..'] },
+  { id: 1, colors: 7, seconds: 90, ppaPairs: 1, layout: ['XXXXXX','XXXXXX','XXXXXX','XXXXXX','XXXXXX'] },
+  { id: 2, colors: 7, seconds: 120, ppaPairs: 2, layout: ['.XXXXXX.','XXXXXXXX','XXXXXXXX','XXXXXXXX','XXXXXXXX','.XXXXXX.'] },
+  { id: 3, colors: 8, seconds: 135, ppaPairs: 3, layout: ['..XXXX..','.XXXXXX.','XXXXXXXX','XXX..XXX','XXX..XXX','XXXXXXXX','.XXXXXX.','..XXXX..'] },
   { id: 4, colors: 7, seconds: 140, layout: ['XXXXXXXX','XXXXXXXX','XXX##XXX','XXX##XXX','XXXXXXXX','XXXXXXXX'] },
   { id: 5, colors: 8, seconds: 165, layout: ['.XXXXXX.','XXXXXXXX','XXXXXXXX','X##XX##X','XXXXXXXX','XXXXXXXX','XXXXXXXX','.XXXXXX.'] },
   { id: 6, colors: 8, seconds: 180, layout: ['..XXXXXX..','XXXXXXXXXX','XXXX##XXXX','XXXX##XXXX','XXXX##XXXX','XXXX##XXXX','XXXXXXXXXX','..XXXXXX..'] },
