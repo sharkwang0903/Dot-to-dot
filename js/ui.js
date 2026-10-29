@@ -66,8 +66,6 @@ DotGame.UI = (() => {
     $('board').style.setProperty('--inner-cols', level.cols);
     $('board').style.setProperty('--inner-rows', level.rows);
     $('board-shell').style.setProperty('--board-ratio', (level.cols + 1) / (level.rows + 1));
-    $('hint-button').disabled = false;
-    $('hint-button').innerHTML = `${icon('hint')} 給我提示`;
     clearLine(); message('');
   }
   function board(grid, selected) {
@@ -85,7 +83,6 @@ DotGame.UI = (() => {
       const replacement = document.querySelector(`[data-cell="${focusKey}"]`) || $('board').querySelector('button');
       replacement?.focus({ preventScroll: true });
     }
-    $('remaining').textContent = `剩餘 ${DotGame.Engine.cells(grid).length / 2} 組`;
   }
   function select(point) {
     document.querySelectorAll('.board-cell.selected').forEach(el => { el.classList.remove('selected'); el.setAttribute('aria-pressed', 'false'); });
@@ -106,11 +103,8 @@ DotGame.UI = (() => {
       $('live-stars').innerHTML = stars(rating); $('live-stars').dataset.rating = rating;
     }
   }
-  function combo(count, ratio) {
-    $('combo-count').innerHTML = `${count}<span> / 5</span>`;
-    $('combo-pips').innerHTML = [1, 2, 3, 4, 5].map(i => `<span class="combo-pip ${i <= count ? 'filled' : ''}"></span>`).join('');
-    $('combo-fill').style.width = `${Math.max(0, ratio) * 100}%`;
-    $('combo-caption').textContent = count === 5 ? '五連擊達成！額外消除一組。' : count ? `再連消 ${5 - count} 組，就有額外獎勵。` : '連續消除五組，額外送一組。';
+  function combo(count) {
+    $('combo-count').textContent = String(count);
   }
   function line(path, grid, bonus = false) {
     const boardEl = $('board'), layer = $('connection-layer');

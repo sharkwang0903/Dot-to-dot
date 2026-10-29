@@ -24,7 +24,6 @@
       <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12 0 6 6m0-6-6 6"/></symbol>
       <symbol id="i-help" viewBox="0 0 24 24"><path d="M9 8a3 3 0 1 1 5 2c-2 1-2 2-2 3m0 3v1"/><path d="M5 3h14l2 2v14l-2 2H5l-2-2V5z"/></symbol>
       <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
-      <symbol id="i-hint" viewBox="0 0 24 24"><path d="M8 16v-2a6 6 0 1 1 8 0v2H8Zm1 4h6M12 1v2M2 8h2m16 0h2"/></symbol>
       <symbol id="i-clock" viewBox="0 0 24 24"><path d="M8 2h8M12 6v7l4 2"/><circle cx="12" cy="13" r="8"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5zM12 14v3"/></symbol>
       <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></symbol>
@@ -81,14 +80,14 @@
         <div class="game-layout">
           <div class="play-column">
             <div class="game-heading-row"><div><div class="eyebrow">MAKE A LITTLE MAGIC</div><h1 id="game-heading">第 1 關</h1></div><div class="score-display"><span>本次分數</span><strong id="score">00000</strong></div></div>
-            <div class="timer-panel"><div class="timer-heading"><span><svg class="icon"><use href="#i-clock"/></svg> 剩餘時間 <strong id="time-text">01:30</strong></span><span class="live-rating"><span>目前評價</span><span id="live-stars" class="stars"></span></span></div><div id="timer-track" class="timer-track" role="progressbar" aria-label="剩餘時間" aria-valuemin="0" aria-valuemax="100"><div id="timer-fill" class="timer-fill"></div><span class="time-mark mark-25"></span><span class="time-mark mark-50"></span></div><div class="timer-labels"><span>0</span><span class="label-25">25% · ★★</span><span class="label-50">50% · ★★★</span><span>100%</span></div></div>
+            <div class="timer-panel"><div class="timer-heading"><span><svg class="icon"><use href="#i-clock"/></svg> 剩餘時間 <strong id="time-text">01:30</strong></span><span class="live-rating"><span>目前評價</span><span id="live-stars" class="stars"></span></span></div><div id="timer-track" class="timer-track" role="progressbar" aria-label="剩餘時間" aria-valuemin="0" aria-valuemax="100"><div id="timer-fill" class="timer-fill"></div><span class="time-mark mark-25" aria-hidden="true"></span><span class="time-mark mark-50" aria-hidden="true"></span></div></div>
             <div id="board-shell" class="board-shell"><div class="board-corner corner-tl"></div><div class="board-corner corner-tr"></div><div class="board-corner corner-bl"></div><div class="board-corner corner-br"></div><div id="board" class="board" role="group" aria-label="寶石棋盤"></div><svg id="connection-layer" class="connection-layer" aria-hidden="true"></svg><div id="board-message" class="board-message" hidden></div></div>
-            <div class="board-footer"><span><span class="status-dot"></span><span id="remaining">剩餘 15 組</span></span><button id="hint-button" class="text-button" data-action="hint"><svg class="icon"><use href="#i-hint"/></svg> 給我提示</button><span class="board-footer-rule">最多兩次轉彎 · 可繞外圍</span></div>
           </div>
           <aside class="game-sidebar">
-            <div class="side-panel combo-panel"><div class="eyebrow">KEEP THE CONNECTION</div><div class="combo-heading"><h2>連擊獎勵</h2><span id="combo-count">0<span> / 5</span></span></div><div id="combo-pips" class="combo-pips"></div><div class="combo-meter"><div id="combo-fill"></div></div><p id="combo-caption">連續消除五組，額外送一組。</p><div class="combo-explainer"><span class="mini-gem"></span><span>每次消除間隔 <b>2 秒內</b><br>獎勵寶石直接消除，無須連線。</span></div></div>
-            <div class="side-panel stage-panel"><div class="eyebrow">IN THIS STAGE</div><div class="stage-detail"><span>寶石種類</span><b id="color-count">5 色</b></div><div id="palette" class="palette"></div><div class="stage-detail"><span>牆壁機關</span><b id="wall-count">無</b></div><div class="panel-divider"></div><div class="stage-detail"><span>最佳星級</span><span id="best-stars" class="stars"></span></div><div class="stage-detail"><span>最高分數</span><b id="best-score">—</b></div><div class="stage-detail"><span>最快通關</span><b id="best-time">—</b></div></div>
-            <div class="little-note"><span>✦</span><p>找不到連線？<br>棋盤會自動洗牌，<br>替你接住下一個可能。</p></div>
+            <div class="side-panel stage-panel">
+              <div class="combo-heading"><h2>COMBO</h2><span id="combo-count">0</span></div>
+              <div class="stage-detail"><span>寶石種類</span><b id="color-count">5 色</b></div><div id="palette" class="palette"></div><div class="stage-detail"><span>牆壁機關</span><b id="wall-count">無</b></div><div class="panel-divider"></div><div class="stage-detail"><span>最佳星級</span><span id="best-stars" class="stars"></span></div><div class="stage-detail"><span>最高分數</span><b id="best-score">—</b></div><div class="stage-detail"><span>最快通關</span><b id="best-time">—</b></div>
+            </div>
           </aside>
         </div>
       </section>

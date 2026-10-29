@@ -24,8 +24,8 @@
     cancelAnimationFrame(frame); clearPending(); session++; U.closeModal(); modalKind = '';
     const level = LEVELS[id - 1], made = E.createBoard(level);
     state = { level, grid: made.grid, palette: made.palette, selected: null, score: 0, combo: 0, lastMatch: null,
-      remaining: level.seconds * 1000, deadline: 0, status: 'ready', hintUntil: 0, pausedCombo: 0 };
-    view = 'game'; U.setupStage(level, made.palette); U.board(state.grid); U.combo(0, 0);
+      remaining: level.seconds * 1000, deadline: 0, status: 'ready', pausedCombo: 0 };
+    view = 'game'; U.setupStage(level, made.palette); U.board(state.grid); U.combo(0);
     U.$('score').textContent = '00000'; U.updateTime(state.remaining, level.seconds); U.showView('game');
     U.message('準備連起你的第一道光');
     U.$('board').inert = true;
@@ -43,25 +43,18 @@
     if (!left) { finish(false, 0); return; }
     if (now - lastPaint > 40) {
       U.updateTime(left, state.level.seconds);
-      if (state.lastMatch !== null) {
-        const comboLeft = Math.max(0, 2000 - (now - state.lastMatch));
-        if (!comboLeft) { state.combo = 0; state.lastMatch = null; U.combo(0, 0); }
-        else U.$('combo-fill').style.width = `${comboLeft / 20}%`;
+      if (state.lastMatch !== null && now - state.lastMatch > 2000) {
+        state.combo = 0; state.lastMatch = null; U.combo(0);
       }
-      const cooldown = Math.max(0, state.hintUntil - now);
-      U.$('hint-button').disabled = cooldown > 0;
-      U.$('hint-button').innerHTML = `${U.icon('hint')} ${cooldown ? `${Math.ceil(cooldown / 1000)} 秒後可提示` : '給我提示'}`;
       lastPaint = now;
     }
     frame = requestAnimationFrame(tick);
   }
-  function clearHints() { document.querySelectorAll('.hinted').forEach(el => el.classList.remove('hinted')); }
   function choose(point) {
     if (!state || state.status !== 'playing') return;
     const now = performance.now(), left = state.deadline - now;
     if (left <= 0) { finish(false, 0); return; }
     if (state.grid[point.r]?.[point.c] < 1) return;
-    clearHints();
     if (!state.selected) { state.selected = point; U.select(point); A.play('select'); return; }
     if (E.equal(state.selected, point)) { state.selected = null; U.select(null); return; }
     const a = state.selected, path = E.findPath(state.grid, a, point);
@@ -74,15 +67,15 @@
     state.score += 100 + (state.combo - 1) * 25;
     state.grid[a.r][a.c] = 0; state.grid[point.r][point.c] = 0; state.selected = null;
     U.line(path, state.grid);
-    if (state.combo === 5) {
+    if (state.combo % 5 === 0) {
       const reward = E.randomPair(state.grid);
       if (reward) {
         reward.forEach(p => { state.grid[p.r][p.c] = 0; }); state.score += 100;
-        U.line(reward, state.grid, true); U.toast('五連擊！額外消除一組寶石 +100');
-      } else U.toast('五連擊！漂亮地清空棋盤。');
+        U.line(reward, state.grid, true); U.toast(`${state.combo} 連擊！額外消除一組寶石 +100`);
+      } else U.toast(`${state.combo} 連擊！漂亮地清空棋盤。`);
       A.play('bonus');
     } else A.play('match');
-    U.board(state.grid); U.combo(state.combo, 1); U.$('score').textContent = String(state.score).padStart(5, '0');
+    U.board(state.grid); U.combo(state.combo); U.$('score').textContent = String(state.score).padStart(5, '0');
     const effectAt = now;
     later(() => { if (state?.lastMatch === effectAt || state?.status === 'won') U.clearLine(); }, 420);
     if (!E.cells(state.grid).length) { finish(true, left); return; }
@@ -110,8 +103,8 @@
     state.remaining = remaining();
     if (state.remaining <= 0) { finish(false, 0); return false; }
     state.pausedCombo = state.lastMatch === null ? 0 : Math.max(0, 2000 - (performance.now() - state.lastMatch));
-    state.status = 'paused'; state.pauseStarted = performance.now(); cancelAnimationFrame(frame);
-    U.clearLine(); clearHints(); U.$('board-shell').classList.add('paused'); U.$('board').inert = true;
+    state.status = 'paused'; cancelAnimationFrame(frame);
+    U.clearLine(); U.$('board-shell').classList.add('paused'); U.$('board').inert = true;
     modalKind = kind;
     return true;
   }
@@ -121,8 +114,7 @@
     const now = performance.now();
     state.deadline = now + state.remaining;
     state.lastMatch = state.pausedCombo > 0 ? now - (2000 - state.pausedCombo) : null;
-    if (!state.lastMatch) { state.combo = 0; U.combo(0, 0); }
-    state.hintUntil += now - state.pauseStarted;
+    if (!state.lastMatch) { state.combo = 0; U.combo(0); }
     U.$('board-shell').classList.remove('paused'); U.$('board').inert = false; tick();
   }
   function pauseDialog() {
@@ -152,21 +144,11 @@
       U.modal(`<div class="eyebrow">${won ? last ? 'ALL STAGES. BEAUTIFULLY CONNECTED.' : 'A BEAUTIFUL CONNECTION' : 'ONE MORE CONNECTION?'}</div><h2>${won ? `第 ${state.level.id} 關完成！` : '時間到了。再來一局？'}</h2>${won ? `<div class="result-stars">${U.stars(rating)}</div><p>${last ? '所有關卡的光都亮起了。回到喜歡的關卡，繼續收集星星。' : rating === 3 ? '節奏剛剛好，三顆星都屬於你。' : '又點亮一關！下次試著更快找到相同的寶石。'}</p>` : '<div class="modal-ornament">↻</div><p>寶石們還在等你。換個節奏，再試一次。<br>已保存的最佳紀錄不受影響。</p>'}<div class="result-stats"><div><span>${won ? '本次總分' : '本次分數'}</span><strong class="gold">${state.score.toLocaleString()}</strong></div><div><span>${won ? '通關耗時' : '本次耗時'}</span><strong>${time.toFixed(1)}<small> s</small></strong></div></div>${won ? `<p>剩餘 ${U.clock(state.remaining / 1000)} · 時間獎勵 +${bonus}</p>${best ? '<p class="new-best">✦ NEW PERSONAL BEST ✦</p>' : ''}${!S.persistent() ? '<p>瀏覽器無法永久儲存，目前紀錄僅保留於此次開啟期間。</p>' : ''}` : ''}<div class="modal-actions">${won && !last ? `<button class="button button-primary" data-action="play" data-level="${state.level.id + 1}">前往第 ${state.level.id + 1} 關 ${U.icon('arrow')}</button>` : `<button class="button button-primary" data-action="${won ? 'levels' : 'retry'}">${won ? '回到關卡選擇' : '再挑戰一次'} ${U.icon(won ? 'arrow' : 'retry')}</button>`}<button class="button button-secondary" data-action="${won ? 'retry' : 'levels'}">${won ? '重玩這一關' : '返回關卡選擇'}</button>${won && !last ? '<button class="text-button" data-action="levels">返回關卡選擇</button>' : ''}</div>`);
     }, won ? 450 : 150);
   }
-  function hint() {
-    if (!state || state.status !== 'playing' || performance.now() < state.hintUntil) return;
-    if (!remaining()) { finish(false, 0); return; }
-    const move = E.findMove(state.grid);
-    if (!move) { autoShuffle(); return; }
-    clearHints(); state.selected = null; U.select(null);
-    U.cell(move.a)?.classList.add('hinted'); U.cell(move.b)?.classList.add('hinted');
-    state.hintUntil = performance.now() + 5000;
-    U.toast('這兩顆可以相連。提示不扣分，每 5 秒可用一次。');
-  }
   function help() {
     if (state && ['ready', 'shuffling'].includes(state.status)) return;
     if (state?.status === 'playing' && !pause('help')) return;
     modalKind = 'help';
-    U.modal(`<div class="eyebrow">THE LITTLE RULEBOOK</div><h2>連起來，就對了。</h2><ol class="help-list"><li>點選兩顆<b>相同顏色</b>的寶石。路線最多轉彎兩次，可以繞到棋盤外。</li><li>路線不能穿過其他寶石或牆壁。第 4 關起出現<b>不可消除的牆壁</b>。</li><li>沒有合法配對時<b>自動洗牌</b>，保留牆壁與空格。洗牌演出不扣時間。</li><li>每次成功消除間隔在 <b>2 秒內</b>，連消五組，額外隨機消除一組。獎勵無須連線，也不累積連擊。</li><li>配對基本分 <b>100</b>；連擊第 2～5 組依序加 25、50、75、100。獎勵配對再加 100，通關每剩餘 1 秒（無條件進位）加 10 分。</li><li>倒數歸零即失敗。通關解鎖下一關，各關<b>分別保存</b>最高分、最快時間與最佳星級。</li></ol><p class="help-stars">★★★ 剩餘 >50%　★★ 剩餘 25～50%<br>★ 剩餘 >0% 且 <25%</p><p style="margin-top:12px">可用滑鼠或觸控。Tab／方向鍵移動，Enter 選取。<br>Esc 暫停；切換分頁也會自動暫停。</p><div class="modal-actions"><button class="button button-primary" data-action="close-help">知道了，開始連線 ${U.icon('arrow')}</button></div>`);
+    U.modal(`<div class="eyebrow">THE LITTLE RULEBOOK</div><h2>連起來，就對了。</h2><ol class="help-list"><li>點選兩顆<b>相同顏色</b>的寶石。路線最多轉彎兩次，可以繞到棋盤外。</li><li>路線不能穿過其他寶石或牆壁。第 4 關起出現<b>不可消除的牆壁</b>。</li><li>沒有合法配對時<b>自動洗牌</b>，保留牆壁與空格。洗牌演出不扣時間。</li><li>每次成功消除間隔在 <b>2 秒內</b>，連擊可持續累積。第 5、10、15……擊額外隨機消除一組；獎勵無須連線，也不累積或重置連擊。</li><li>第 n 次連擊的配對得分為 <b>100 + (n − 1) × 25</b>，每次遞增 25 分，直到連擊中斷。獎勵配對再加 100，通關每剩餘 1 秒（無條件進位）加 10 分。</li><li>倒數歸零即失敗。通關解鎖下一關，各關<b>分別保存</b>最高分、最快時間與最佳星級。</li></ol><p class="help-stars">★★★ 剩餘 >50%　★★ 剩餘 25～50%<br>★ 剩餘 >0% 且 <25%</p><p style="margin-top:12px">可用滑鼠或觸控。Tab／方向鍵移動，Enter 選取。<br>Esc 暫停；切換分頁也會自動暫停。</p><div class="modal-actions"><button class="button button-primary" data-action="close-help">知道了，開始連線 ${U.icon('arrow')}</button></div>`);
   }
   document.addEventListener('click', event => {
     const tile = event.target.closest('[data-cell]');
@@ -182,7 +164,6 @@
       case 'leave': leave(); break;
       case 'pause': pauseDialog(); break;
       case 'resume': resume(); break;
-      case 'hint': hint(); break;
       case 'help': help(); break;
       case 'close-help': U.closeModal(); if (state?.status === 'paused') resume(); modalKind = ''; break;
       case 'sound': S.sound(!S.get().sound); U.soundButton(); if (S.get().sound) A.play('select'); break;
@@ -207,5 +188,5 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden && state?.status === 'playing') pauseDialog(); });
   window.addEventListener('blur', () => { if (state?.status === 'playing') pauseDialog(); });
-  U.pixelTitle(); U.demo(); U.soundButton(); U.combo(0, 0);
+  U.pixelTitle(); U.demo(); U.soundButton(); U.combo(0);
 })();

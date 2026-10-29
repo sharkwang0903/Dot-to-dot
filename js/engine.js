@@ -110,6 +110,6 @@ DotGame.Engine = (() => {
     return shuffle(eligible[Math.floor(rng() * eligible.length)], rng).slice(0, 2);
   }
   const stars = (remaining, total) => remaining <= 0 ? 0 : remaining / total > .5 ? 3 : remaining / total >= .25 ? 2 : 1;
-  const nextCombo = (count, lastAt, now) => lastAt !== null && now - lastAt <= 2000 ? count % 5 + 1 : 1;
+  const nextCombo = (count, lastAt, now) => lastAt !== null && now - lastAt <= 2000 ? count + 1 : 1;
   return { equal, shuffle, cells, findPath, findMove, reshuffle, createBoard, randomPair, stars, nextCombo };
 })();
