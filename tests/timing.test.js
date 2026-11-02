@@ -97,9 +97,10 @@ for (let id = 8; id <= 16; id++) {
   assert.equal(node('score').textContent, '00000');
   for (let steps = 0; D.Engine.cells(rendered).length && steps < 100; steps++) {
     match(); advance(100);
-    if (!D.Engine.findMove(rendered) && D.Engine.cells(rendered).length) advance(650);
+    // 後期關卡也有 PPA，必須等待消除演出或洗牌結束後再操作。
+    for (let wait = 0; node('board').inert && D.Engine.cells(rendered).length && wait < 40; wait++) advance(100);
   }
-  advance(500);
+  advance(1000); // 最後一對可能是 PPA，需等演出收尾及通關視窗。
   assert.match(dialog, new RegExp(`第 ${id} 關完成`));
   assert.equal(D.Storage.get().records[id].stars, 3);
   if (id < 16) assert.match(dialog, new RegExp(`前往第 ${id + 1} 關`));

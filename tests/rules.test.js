@@ -57,7 +57,7 @@ for (let round = 0; round < 700; round++) {
 console.log('PASS: 700 個隨機棋盤的連線結果與獨立搜尋一致');
 
 let games = 0, shuffles = 0, bonuses = 0;
-for (const [index, ordinary, ppa, colors, seconds] of [[0,28,2,7,90],[1,40,4,7,120],[2,42,6,8,135]]) {
+for (const [index, ordinary, ppa, colors, seconds] of [[0,28,2,7,90],[1,40,4,7,120],[2,44,4,8,135]]) {
   const level = LEVELS[index];
   check(level.tiles === ordinary + ppa && level.ppaPairs * 2 === ppa && level.colors === colors && level.seconds === seconds, '前三關固定總牌數、普通色數、限時及 PPA 配對數');
   for (let run = 0; run < 20; run++) {
@@ -69,12 +69,12 @@ for (const [index, ordinary, ppa, colors, seconds] of [[0,28,2,7,90],[1,40,4,7,1
     for (const pair of E.ppaTargets(mixed, 5, rng)) check(pair.every(p => !E.isPPA(p.value)), '自動消除排除所有 PPA');
   }
 }
-check(LEVELS.slice(3).every(level => !level.ppaPairs), '第 4～16 關不加入 PPA');
+assert.deepEqual(Array.from(LEVELS, level => level.ppaPairs), [1,2,2,2,2,3,3,3,4,4,4,4,4,4,4,5]);
 for (const level of LEVELS) {
   check(level.tiles % 2 === 0, `第 ${level.id} 關牌數成對`);
   check(level.layout.every(row => row.length === level.cols), '版型每列等寬');
   check(level.colors <= level.poolSize && level.poolSize <= context.DotGame.GEMS.length, '色數在該關可抽選集合內');
-  check(level.tiles >= level.colors * 2, '每種顏色至少一組');
+  check(level.tiles - level.ppaPairs * 2 >= level.colors * 2, '扣除 PPA 後每種普通顏色至少一組');
   check((level.id >= 4) === (level.walls > 0), '第 4 關開始有牆');
   // 任何兩個剩餘位置在只有牆壁時都能相連，避免洗牌也救不了的尾盤。
   const empty = E.createBoard(level, rng).grid.map(row => row.map(v => v === -1 ? -1 : 0));
@@ -93,6 +93,9 @@ for (const level of LEVELS) {
     check(palette.every(id => id <= level.poolSize), '寶石依關卡逐步加入集合');
     for (const color of palette) check(E.cells(grid).filter(p => p.value === color).length % 2 === 0, '每種顏色成對');
     check(E.cells(grid).length === level.tiles, '牌數正確');
+    const mixed = E.reshuffle(grid, rng);
+    check(E.cells(mixed).map(p => p.value).sort().join(',') === E.cells(grid).map(p => p.value).sort().join(','), '每關洗牌保留 PPA 與普通寶石數量');
+    grid.forEach((row,r) => row.forEach((v,c) => check(v > 0 ? mixed[r][c] > 0 : mixed[r][c] === v, '每關洗牌保留牆壁、空格與格位')));
     check(E.findMove(grid), '開局有合法配對');
     signatures.add(JSON.stringify(grid)); palettes.add(palette.slice().sort().join(','));
     let steps = 0;

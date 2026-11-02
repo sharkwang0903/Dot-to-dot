@@ -21,9 +21,9 @@ DotGame.GEMS = [
 // PPA 不屬於十五色寶石集合；正值 ID 讓它沿用相同的連線與洗牌規則。
 DotGame.PPA = { id: 100, maxPairs: 5, pairScore: 100 };
 DotGame.LEVELS = [
-  { id: 1, colors: 7, seconds: 90, ppaPairs: 1, layout: ['XXXXXX','XXXXXX','XXXXXX','XXXXXX','XXXXXX'] },
-  { id: 2, colors: 7, seconds: 120, ppaPairs: 2, layout: ['.XXXXXX.','XXXXXXXX','XXXXXXXX','XXXXXXXX','XXXXXXXX','.XXXXXX.'] },
-  { id: 3, colors: 8, seconds: 135, ppaPairs: 3, layout: ['..XXXX..','.XXXXXX.','XXXXXXXX','XXX..XXX','XXX..XXX','XXXXXXXX','.XXXXXX.','..XXXX..'] },
+  { id: 1, colors: 7, seconds: 90, layout: ['XXXXXX','XXXXXX','XXXXXX','XXXXXX','XXXXXX'] },
+  { id: 2, colors: 7, seconds: 120, layout: ['.XXXXXX.','XXXXXXXX','XXXXXXXX','XXXXXXXX','XXXXXXXX','.XXXXXX.'] },
+  { id: 3, colors: 8, seconds: 135, layout: ['..XXXX..','.XXXXXX.','XXXXXXXX','XXX..XXX','XXX..XXX','XXXXXXXX','.XXXXXX.','..XXXX..'] },
   { id: 4, colors: 7, seconds: 140, layout: ['XXXXXXXX','XXXXXXXX','XXX##XXX','XXX##XXX','XXXXXXXX','XXXXXXXX'] },
   { id: 5, colors: 8, seconds: 165, layout: ['.XXXXXX.','XXXXXXXX','XXXXXXXX','X##XX##X','XXXXXXXX','XXXXXXXX','XXXXXXXX','.XXXXXX.'] },
   { id: 6, colors: 8, seconds: 180, layout: ['..XXXXXX..','XXXXXXXXXX','XXXX##XXXX','XXXX##XXXX','XXXX##XXXX','XXXX##XXXX','XXXXXXXXXX','..XXXXXX..'] },
@@ -54,6 +54,10 @@ DotGame.LEVELS = [
   { id: 16, colors: 15, poolSize: 15, seconds: 210, layout: [
     'XXXXXXXXXXXX','XXXXXXXXXXXX','XXXXXXXXXXXX','XXXXXXXXXXXX','X###X##X###X',
     '..XX....XX..','XXXXXXXXXXXX','XXXXXXXXXXXX','XXXXXXXXXXXX','XXXXXXXXXXXX'] }
-].map(level => ({ ...level, poolSize: level.poolSize ?? 9, rows: level.layout.length, cols: level.layout[0].length,
-  tiles: level.layout.join('').split('').filter(cell => cell === 'X').length,
-  walls: level.layout.join('').split('').filter(cell => cell === '#').length }));
+].map(level => {
+  const tiles = level.layout.join('').split('').filter(cell => cell === 'X').length;
+  // 每 20 顆可消除方塊配置一對 PPA，捨去小數，至少一對、最多五對。
+  return { ...level, poolSize: level.poolSize ?? 9, rows: level.layout.length, cols: level.layout[0].length,
+    tiles, ppaPairs: Math.min(5, Math.max(1, Math.floor(tiles / 20))),
+    walls: level.layout.join('').split('').filter(cell => cell === '#').length };
+});
