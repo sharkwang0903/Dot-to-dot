@@ -69,8 +69,24 @@ for (const [index, ordinary, ppa, colors, seconds] of [[0,28,2,7,90],[1,40,4,7,1
     for (const pair of E.ppaTargets(mixed, 5, rng)) check(pair.every(p => !E.isPPA(p.value)), '自動消除排除所有 PPA');
   }
 }
-assert.deepEqual(Array.from(LEVELS, level => level.ppaPairs), [1,2,2,2,2,3,3,3,4,4,4,4,4,4,4,5]);
+assert.equal(LEVELS.length, 100);
+assert.deepEqual(Array.from(LEVELS.slice(0, 16), level => level.ppaPairs), [1,2,2,2,2,3,3,3,4,4,4,4,4,4,4,5]);
+assert.equal(new Set(LEVELS.map(level => level.layout.join('/'))).size, 100, '100 關版型各不相同');
+for (const [id, mechanic] of [[20, 'bombs'], [40, 'ice'], [60, 'fog'], [80, 'clocks']]) {
+  const first = LEVELS[id - 1];
+  check(first[mechanic], `第 ${id} 關引入指定新機關`);
+  check(['bombs','ice','fog','clocks'].every(key => key === mechanic || !first[key]), '首次出場只使用新機關');
+}
 for (const level of LEVELS) {
+  if (level.id >= 81) {
+    check(['bombs','ice','fog','clocks'].filter(key => !!level[key]).length >= 2, '第 81 關起至少兩種機關（一般寶石與 PPA 不計）');
+    check((level.fogTiles || 0) <= Math.floor(level.tiles / 2), '大霧關卡仍保留至少半盤視線');
+  }
+  check(level.id === LEVELS.indexOf(level) + 1, '關卡 ID 連續');
+  check(level.layout.every(row => /^[X#.]+$/.test(row)), '僅沿用既有格子種類');
+  check(level.ppaPairs === Math.min(5, Math.max(1, Math.floor(level.tiles / 20))), '每關 PPA 按總牌數配置');
+  check(level.cols <= 12 && level.rows <= 10, '盤面不超過既有最大尺寸');
+  check(level.seconds >= 90 && level.seconds <= 210 && level.tiles <= 104, '沿用既有時間及牌數範圍');
   check(level.tiles % 2 === 0, `第 ${level.id} 關牌數成對`);
   check(level.layout.every(row => row.length === level.cols), '版型每列等寬');
   check(level.colors <= level.poolSize && level.poolSize <= context.DotGame.GEMS.length, '色數在該關可抽選集合內');
@@ -88,13 +104,21 @@ for (const level of LEVELS) {
   const signatures = new Set(), palettes = new Set();
   for (let run = 0; run < 35; run++) {
     let { grid, palette } = E.createBoard(level, rng);
-    check(new Set(E.cells(grid).filter(p => !E.isPPA(p.value)).map(p => p.value)).size === level.colors, '普通顏色種類固定');
+    check(new Set(E.cells(grid).filter(p => !E.isPPA(p.value)).map(p => E.baseValue(p.value))).size === level.colors, '普通顏色種類固定');
     check(E.cells(grid).filter(p => E.isPPA(p.value)).length === (level.ppaPairs || 0) * 2, 'PPA 完整成對且只在指定關卡');
     check(palette.every(id => id <= level.poolSize), '寶石依關卡逐步加入集合');
-    for (const color of palette) check(E.cells(grid).filter(p => p.value === color).length % 2 === 0, '每種顏色成對');
+    for (const color of palette) check(E.cells(grid).filter(p => E.baseValue(p.value) === color).length % 2 === 0, '每種顏色成對');
+    check(E.cells(grid).filter(p => E.isBomb(p.value)).length === (level.bombs || 0), '炸彈標記數量正確');
+    check(E.cells(grid).some(p => !E.isPPA(p.value) && !E.isBomb(p.value) && !E.isFrozen(p.value) && !E.clockType(p.value)), '每關仍保留可操作的基本寶石');
+    check(E.cells(grid).filter(p => E.clockType(p.value) === 1).length === (level.clocks?.plus || 0), '加時寶石數量正確');
+    check(E.cells(grid).filter(p => E.clockType(p.value) === 2).length === (level.clocks?.minus || 0), '減時寶石數量正確');
+    check(E.cells(grid).filter(p => E.isFrozen(p.value)).length === (level.ice || 0), '每關冰封數量正確');
+    check(E.cells(grid).filter(p => E.isFogged(p.value)).length === (level.fogTiles || 0), '薄霧區域內牌數正確');
     check(E.cells(grid).length === level.tiles, '牌數正確');
     const mixed = E.reshuffle(grid, rng);
-    check(E.cells(mixed).map(p => p.value).sort().join(',') === E.cells(grid).map(p => p.value).sort().join(','), '每關洗牌保留 PPA 與普通寶石數量');
+    check(E.cells(mixed).map(p => E.tileValue(p.value)).sort().join(',') === E.cells(grid).map(p => E.tileValue(p.value)).sort().join(','), '每關洗牌保留 PPA 與普通寶石數量');
+    grid.forEach((row, r) => row.forEach((v, c) => check(E.isFrozen(v) === E.isFrozen(mixed[r][c]), '洗牌保留冰層位置')));
+    grid.forEach((row, r) => row.forEach((v, c) => check(E.fogDepth(v) === E.fogDepth(mixed[r][c]), '洗牌保留薄霧位置及濃度')));
     grid.forEach((row,r) => row.forEach((v,c) => check(v > 0 ? mixed[r][c] > 0 : mixed[r][c] === v, '每關洗牌保留牆壁、空格與格位')));
     check(E.findMove(grid), '開局有合法配對');
     signatures.add(JSON.stringify(grid)); palettes.add(palette.slice().sort().join(','));
@@ -103,18 +127,23 @@ for (const level of LEVELS) {
       check(++steps < level.tiles, '有限步內完成');
       let move = E.findMove(grid);
       if (!move) {
-        const before = grid.map(row => row.slice()), values = E.cells(grid).map(p => p.value).sort().join(',');
+        const before = grid.map(row => row.slice()), values = E.cells(grid).map(p => E.tileValue(p.value)).sort().join(',');
         grid = E.reshuffle(grid, rng); shuffles++;
-        check(E.cells(grid).map(p => p.value).sort().join(',') === values, '洗牌保留顏色數量');
+        check(E.cells(grid).map(p => E.tileValue(p.value)).sort().join(',') === values, '洗牌保留顏色數量');
         before.forEach((row, r) => row.forEach((v, c) => { check((v > 0) === (grid[r][c] > 0), '洗牌保留位置'); if (v <= 0) check(grid[r][c] === v, '洗牌保留空格和牆'); }));
         move = E.findMove(grid); check(move, '洗牌後有合法配對');
       }
       verifyRoute(grid, move.a, move.b, move.path);
       const ppa = E.isPPA(grid[move.a.r][move.a.c]);
-      grid[move.a.r][move.a.c] = grid[move.b.r][move.b.c] = 0;
+      const centers = [move.a, move.b].filter(p => E.isBomb(grid[p.r][p.c]));
+      E.removePair(grid, [move.a, move.b]);
       if (ppa) for (const pair of E.ppaTargets(grid, steps, rng)) {
-        check(pair[0].value === pair[1].value && !E.isPPA(pair[0].value), 'PPA 只消普通同色完整配對');
-        pair.forEach(p => { grid[p.r][p.c] = 0; }); bonuses++;
+        check(E.sameColor(pair[0].value, pair[1].value) && !E.isPPA(pair[0].value), 'PPA 只消普通同色完整配對');
+        E.removePair(grid, pair); bonuses++;
+      }
+      if (centers.length) for (const pair of E.bombTargets(grid, rng)) {
+        check(E.sameColor(pair[0].value, pair[1].value) && !E.isPPA(pair[0].value), '炸彈僅消除同色完整配對');
+        E.removePair(grid, pair);
       }
     }
     check(grid.flat().filter(v => v === -1).length === level.walls, '通關不消除牆'); games++;

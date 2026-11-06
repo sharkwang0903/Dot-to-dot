@@ -29,7 +29,9 @@ DotGame.Storage = (() => {
     };
     data.unlocked = Math.max(data.unlocked, Math.min(levelCount, id + 1));
     save();
+    DotGame.Journey?.complete(id);
     return !old || result.score > old.score;
   }
-  return { get: () => data, record, sound(value) { data.sound = value; save(); }, persistent: () => persistent };
+  function unlock(id) { const next = Math.max(data.unlocked, Math.min(levelCount,id)); if(next!==data.unlocked) { data.unlocked=next; save(); } }
+  return { get: () => data, record, unlock, sound(value) { data.sound = value; save(); }, persistent: () => persistent };
 })();

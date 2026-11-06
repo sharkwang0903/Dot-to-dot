@@ -26,7 +26,7 @@ D.UI={
   $:node,icon:()=>'',stars:n=>`stars:${n}`,clock:n=>String(n),formatTime:n=>String(n),
   showView(){},levels(){},setupStage(){},board(grid){rendered=grid.map(row=>row.slice());},
   select(){},cell:()=>node('tile'),updateTime(ms){clockValue=ms;},combo(count){comboCount=count;},line(path,grid,bonus){if(bonus)rewardEffects++;},clearLine(){},message(){},
-  ppaFeedback(){},clearPPA(){},clearToast(){},soundButton(){},toast(){},modal(html){dialog=html;node('modal').open=true;},closeModal(){dialog='';node('modal').open=false;},pixelTitle(){},demo(){}
+  ppaFeedback(){},clearPPA(){},blast(){},clearBomb(){},clearToast(){},soundButton(){},toast(){},modal(html){dialog=html;node('modal').open=true;},closeModal(){dialog='';node('modal').open=false;},pixelTitle(){},demo(){}
 };
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/game.js'),'utf8'),context);
 function advance(ms){const target=now+ms;for(let safe=0;safe<100000;safe++){let entry=[...jobs].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>target)break;now=entry[1].at;jobs.delete(entry[0]);entry[1].fn();}now=target;}
@@ -89,10 +89,12 @@ assert.notEqual(clockValue,0);context.document.hidden=false;click('resume');adva
 click('levels');advance(10000);assert.equal(dialog,'');
 console.log('PASS: 分頁隱藏自動暫停，離開後舊計時與延遲不再生效');
 
-// 從原最後一關實際跑完整段遊戲流程，涵蓋第 8→9、15→16 與最終結算。
+// 從第 8 關跑到第 100 關，涵蓋舊版最後一關銜接、下一關按鈕及最終結算。
 D.Storage.record(7, { stars: 3, score: 1000, time: 20 });
-for (let id = 8; id <= 16; id++) {
-  click('play', id); advance(650);
+for (let id = 8; id <= 100; id++) {
+  // 第一關從選單開啟，其後使用結算視窗實際產生的下一關按鈕。
+  if (id === 8) click('play', id);
+  advance(650);
   assert.equal(clockValue, D.LEVELS[id - 1].seconds * 1000);
   assert.equal(node('score').textContent, '00000');
   for (let steps = 0; D.Engine.cells(rendered).length && steps < 100; steps++) {
@@ -103,10 +105,23 @@ for (let id = 8; id <= 16; id++) {
   advance(1000); // 最後一對可能是 PPA，需等演出收尾及通關視窗。
   assert.match(dialog, new RegExp(`第 ${id} 關完成`));
   assert.equal(D.Storage.get().records[id].stars, 3);
-  if (id < 16) assert.match(dialog, new RegExp(`前往第 ${id + 1} 關`));
-  else { assert.match(dialog, /所有關卡的光都亮起了/); assert.doesNotMatch(dialog, /前往第 17 關/); }
+  assert.equal(D.Storage.get().unlocked, Math.min(100, id + 1));
+  if (id < 100) {
+    assert.match(dialog, new RegExp(`前往第 ${id + 1} 關`));
+    const next = dialog.match(/data-action="play" data-level="(\d+)"/);
+    assert.ok(next); assert.equal(Number(next[1]), id + 1);
+    click('play', Number(next[1]));
+    assert.equal(dialog, '');
+  } else {
+    assert.match(dialog, /所有關卡的光都亮起了/);
+    assert.doesNotMatch(dialog, /前往第 101 關/);
+    assert.match(dialog, /100 關的旅程/); assert.match(dialog, /class="finale-mark"/);
+    click('retry'); advance(650);
+    assert.equal(clockValue, D.LEVELS[99].seconds * 1000);
+    click('levels'); advance(10000); assert.equal(dialog, '');
+  }
 }
-console.log('PASS: 第 8～16 關完整流程可通關，下一關與最終結算正確');
+console.log('PASS: 第 8～100 關完整流程可通關，98→99→100 銜接、百關結算及重玩正確');
 
 // 使用實際 UI 繪製函式，檢查精簡介面只更新當前連擊數。
 const uiContext = { DotGame:{Engine:D.Engine}, document:{getElementById:node} };

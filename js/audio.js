@@ -7,7 +7,7 @@ DotGame.Audio = (() => {
       context ||= new (window.AudioContext || window.webkitAudioContext)();
       if (context.state === 'suspended') context.resume();
       const notes = {
-        select: [440], match: [587, 784], bonus: [659, 784, 988, 1318],
+        select: [440], match: [587, 784], bonus: [659, 784, 988, 1318], bomb: [196, 147, 98],
         win: [523, 659, 784, 1047], lose: [330, 294, 220], shuffle: [392, 523, 440], error: [180]
       }[kind] || [440];
       notes.forEach((frequency, i) => {

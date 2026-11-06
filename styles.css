@@ -32,3 +32,46 @@
 @keyframes ppa-breathe{0%,100%{opacity:calc(var(--charge) * .65)}50%{opacity:var(--charge)}}
 @media(prefers-reduced-motion:reduce){.board-cell.ppa-tile::before{animation:none;opacity:var(--charge)}}
 @media(min-width:761px){body[data-view="game"] .site-header{height:78px}.game-topline{padding:13px 0}.board-shell{width:min(100%,calc(max(300px,100dvh - 350px) * var(--board-ratio,1)))}.game-heading-row{margin-bottom:15px}.timer-panel{margin-bottom:15px}}
+
+/* 炸彈保留原寶石與辨色符號；右下角徽記不攔截點擊。 */
+.board-cell.bomb-tile{border-color:#c69151;box-shadow:inset 0 2px #a67e4a66,inset 0 -3px #15222d}
+.bomb-badge{position:absolute;right:0;bottom:0;width:38%;height:38%;max-width:20px;max-height:20px;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 1px #080e17)}
+.board-cell.bomb-origin::after{content:"";position:absolute;inset:12%;border:2px solid #ffe0a3;pointer-events:none;animation:bomb-ring .48s ease-out both}
+.board-cell.bomb-hit{border-color:#eac07c;box-shadow:inset 0 0 12px #ffc77388}
+.board-cell.bomb-hit .gem{animation:bomb-hit .32s ease-in both}
+.paused .bomb-origin::after,.paused .bomb-hit .gem{animation-play-state:paused}
+@keyframes bomb-ring{from{transform:scale(.5);opacity:1}to{transform:scale(1.7);opacity:0}}
+@keyframes bomb-hit{to{transform:scale(.65);opacity:.35}}
+@media(prefers-reduced-motion:reduce){.board-cell.bomb-origin::after,.board-cell.bomb-hit .gem{animation:none}.board-cell.bomb-hit{outline:2px solid #ffe0a3;outline-offset:-2px}}
+
+/* 冰層包住原寶石，仍看得見色彩及符號；不縮小點擊格或新增浮動控制。 */
+.board-cell.frozen{border-color:#8fd6f4;background:#244657;box-shadow:inset 0 0 10px #8bd8ff66;cursor:default}
+.ice-shell{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;filter:drop-shadow(0 0 2px #9ce8ff88)}
+.board-cell.ice-thaw .ice-shell{animation:ice-thaw .36s ease-out forwards}
+.paused .ice-thaw .ice-shell{animation-play-state:paused}
+@keyframes ice-thaw{to{transform:scale(1.15);opacity:0}}
+@media(prefers-reduced-motion:reduce){.board-cell.ice-thaw .ice-shell{animation:none;opacity:0}}
+
+/* 薄霧只遮蔽視線，不攔截點擊。兩層霧依鄰接配對逐步變薄。 */
+.fog-veil{position:absolute;inset:-1px;border-radius:3px;z-index:6;pointer-events:none;background:radial-gradient(ellipse at 18% 32%,#e2edf2 0 16%,transparent 64%),radial-gradient(ellipse at 80% 70%,#c4d6e1 0 22%,transparent 70%),linear-gradient(135deg,#afc5d2,#d7e3e9 48%,#9db7c9);opacity:.94;box-shadow:inset 0 0 8px #f1f7fa80}
+.board-cell.fogged{background:#344b5b;border-color:#829eae}
+.fogged .gem,.fogged .bomb-badge,.fogged .ppa-sparks,.fogged .ice-shell{filter:blur(2px);opacity:.25}
+.fogged[data-fog="1"] .fog-veil{opacity:.58}
+.fogged[data-fog="1"] .gem,.fogged[data-fog="1"] .bomb-badge,.fogged[data-fog="1"] .ice-shell{filter:blur(.8px);opacity:.65}
+.board-cell.fogged.selected{border-color:var(--mint);outline:1px solid var(--mint);outline-offset:0}
+.fog-thinning .fog-veil{animation:fog-thin .35s ease-out}
+.fog-reveal .fog-veil{animation:fog-clear .35s ease-out forwards}
+.paused .fog-veil{animation-play-state:paused}
+@keyframes fog-thin{from{opacity:.94}to{opacity:.58}}
+@keyframes fog-clear{from{opacity:.58}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.fog-thinning .fog-veil{animation:none}.fog-reveal .fog-veil{animation:none;opacity:0}}
+
+/* 時鐘的正負號獨立於顏色，保留原寶石辨色符號。 */
+.clock-badge{position:absolute;right:0;bottom:0;width:58%;height:38%;max-width:32px;max-height:22px;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 1px #080e17)}
+.clock-plus{color:#a6f0c4}.clock-minus{color:#ffb1aa}
+.fogged .clock-badge{filter:blur(2px);opacity:.25}
+.fogged[data-fog="1"] .clock-badge{filter:blur(.8px);opacity:.65}
+
+.level-name,.stage-name{font-size:12px;color:var(--gold);letter-spacing:2px;margin-top:5px}
+.level-name{margin-bottom:-8px}
+.finale-mark{display:grid;place-items:center;width:94px;height:94px;margin:0 auto 18px;border:1px solid #e7c77d88;border-radius:50%;font:36px var(--mono);color:var(--gold);background:radial-gradient(circle,#e7c77d20,transparent 72%);box-shadow:0 0 30px #e7c77d14}

@@ -3,6 +3,7 @@
   'use strict';
   const { Engine: E, UI: U, Storage: S, Audio: A, LEVELS, COMBO_WINDOW_MS } = DotGame;
   const { CampaignStorage: CS, CampaignUI: CU } = DotGame;
+  let rewardBack = null, rewardNotices = [], rewardRequest = 0, rewardContinue = false;
   let state = null, view = 'home', modalKind = '', frame = 0, lastPaint = 0;
   let session = 0;
   const pending = new Set();
@@ -15,8 +16,8 @@
   function clearPending() { pending.forEach(clearTimeout); pending.clear(); }
   const remaining = () => state?.status === 'playing' ? Math.max(0, state.deadline - performance.now()) : state?.remaining || 0;
   function go(name) {
-    cancelAnimationFrame(frame); clearPending(); session++; U.closeModal(); modalKind = '';
-    U.clearPPA(); U.clearLine(); U.clearToast();
+    cancelAnimationFrame(frame); clearPending(); session++; rewardRequest++; rewardBack=null; U.closeModal(); modalKind = '';
+    U.clearPPA(); U.clearBomb(); U.clearLine(); U.clearToast();
     state = null; view = name;
     if (name === 'levels') U.levels();
     if (name === 'home') CU.home();
@@ -25,11 +26,11 @@
   function start(id, mode = 'free') {
     if (!Number.isInteger(id) || id < 1 || id > LEVELS.length) return;
     if (mode === 'campaign' ? !CS.canPlay(id) : id > S.get().unlocked) return;
-    cancelAnimationFrame(frame); clearPending(); session++; U.closeModal(); modalKind = '';
-    U.clearPPA(); U.clearToast();
+    cancelAnimationFrame(frame); clearPending(); session++; rewardRequest++; rewardBack=null; U.closeModal(); modalKind = '';
+    U.clearPPA(); U.clearBomb(); U.clearToast();
     const level = LEVELS[id - 1], made = E.createBoard(level);
     state = { mode, level, grid: made.grid, palette: made.palette, selected: null, score: 0, combo: 0, lastMatch: null,
-      remaining: level.seconds * 1000, deadline: 0, status: 'ready', pausedCombo: null };
+      remaining: level.seconds * 1000, timeShift: 0, deadline: 0, status: 'ready', pausedCombo: null };
     view = 'game'; U.setupStage(level, made.palette, mode); U.board(state.grid); U.combo(0);
     U.$('score').textContent = '00000'; U.updateTime(state.remaining, level.seconds); U.showView('game');
     U.message('準備連起你的第一道光');
@@ -57,9 +58,9 @@
   }
   function choose(point) {
     if (!state || state.status !== 'playing') return;
-    const now = performance.now(), left = state.deadline - now;
+    const now = performance.now(); let left = state.deadline - now;
     if (left <= 0) { finish(false, 0); return; }
-    if (state.grid[point.r]?.[point.c] < 1) return;
+    if (!(state.grid[point.r]?.[point.c] > 0) || E.isFrozen(state.grid[point.r][point.c])) return;
     if (!state.selected) { state.selected = point; U.select(point); A.play('select'); return; }
     if (E.equal(state.selected, point)) { state.selected = null; U.select(null); return; }
     const a = state.selected, path = E.findPath(state.grid, a, point);
@@ -71,47 +72,90 @@
     state.combo = E.nextCombo(state.combo, state.lastMatch, now); state.lastMatch = now;
     state.score += 100 + (state.combo - 1) * 25;
     const ppa = E.isPPA(state.grid[a.r][a.c]);
-    state.grid[a.r][a.c] = 0; state.grid[point.r][point.c] = 0; state.selected = null;
+    const bombCenters = [a, point].filter(p => E.isBomb(state.grid[p.r][p.c]));
+    const { thawed, revealed, timeDelta } = E.removePair(state.grid, [a, point]); state.selected = null;
     U.line(path, state.grid);
-    U.board(state.grid); U.combo(state.combo); U.$('score').textContent = String(state.score).padStart(5, '0');
+    U.board(state.grid, null, thawed, revealed); U.combo(state.combo); U.$('score').textContent = String(state.score).padStart(5, '0');
+    left = adjustTime(timeDelta, left);
+    if (left <= 0) { finish(!E.cells(state.grid).length, 0); return; }
     if (ppa) { beginPPA(left); return; }
+    if (bombCenters.length) { beginBomb(left, bombCenters); return; }
     A.play('match');
     const effectAt = now;
     later(() => { if (!state?.effect && (state?.lastMatch === effectAt || state?.status === 'won')) U.clearLine(); }, 420);
     if (!E.cells(state.grid).length) { finish(true, left); return; }
     if (!E.findMove(state.grid)) autoShuffle();
   }
+  // 每組配對合計正負秒數後一次套用；特殊消除也生效，但不增加或刷新連擊。
+  function adjustTime(delta, left) {
+    if (!delta) return left;
+    const next = Math.max(0, left + delta);
+    state.timeShift += next - left; state.remaining = next;
+    if (state.status === 'playing') state.deadline = performance.now() + next;
+    U.updateTime(next, state.level.seconds);
+    U.toast(`時間 ${delta > 0 ? '+' : '−'}${Math.abs(delta) / 1000} 秒`);
+    return next;
+  }
   // 特效使用獨立狀態及可暫停的步驟；普通連擊計時不在這裡刷新。
   function beginPPA(left) {
     state.remaining = left; state.status = 'resolving'; state.pausedCombo = COMBO_WINDOW_MS;
-    state.effect = { pairs: E.ppaTargets(state.grid, state.combo), index: 0, phase: 'reveal',
+    state.effect = { kind: 'ppa', pairs: E.ppaTargets(state.grid, state.combo), index: 0, phase: 'reveal',
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches };
     cancelAnimationFrame(frame); U.$('board').inert = true;
     U.$('board-shell').classList.add('ppa-active');
     U.ppaFeedback(0, state.effect.pairs.length); U.updateTime(left, state.level.seconds); A.play('bonus');
-    schedulePPA(state.effect.reduced ? 60 : 320);
+    scheduleEffect(state.effect.reduced ? 60 : 320);
   }
-  function schedulePPA(delay) {
+  function beginBomb(left, centers) {
+    state.remaining = left; state.status = 'resolving'; state.pausedCombo = COMBO_WINDOW_MS;
+    state.effect = { kind: 'bomb', centers, pairs: E.bombTargets(state.grid), phase: 'reveal',
+      reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches };
+    cancelAnimationFrame(frame); U.$('board').inert = true;
+    U.clearLine(); U.blast(centers, state.grid, state.effect.pairs);
+    U.updateTime(left, state.level.seconds); A.play('bomb');
+    scheduleEffect(state.effect.reduced ? 60 : 320);
+  }
+  function scheduleEffect(delay) {
     state.effect.due = performance.now() + delay;
-    state.effect.timer = later(stepPPA, delay);
+    state.effect.timer = later(stepEffect, delay);
   }
-  function stepPPA() {
+  function stepEffect() {
     if (state?.status !== 'resolving') return;
+    if (state.effect.kind === 'bomb') { stepBomb(); return; }
     const effect = state.effect, pair = effect.pairs[effect.index];
     if (pair && effect.phase === 'reveal') {
       U.clearLine(); U.line(pair, state.grid, true);
-      effect.phase = 'remove'; schedulePPA(effect.reduced ? 40 : 200); return;
+      effect.phase = 'remove'; scheduleEffect(effect.reduced ? 40 : 200); return;
     }
     if (pair) {
-      pair.forEach(p => { state.grid[p.r][p.c] = 0; });
+      const { thawed, revealed, timeDelta } = E.removePair(state.grid, pair);
       state.score += DotGame.PPA.pairScore; effect.index++; effect.phase = 'reveal';
-      U.board(state.grid); U.ppaFeedback(effect.index, effect.pairs.length);
+      U.board(state.grid, null, thawed, revealed); U.ppaFeedback(effect.index, effect.pairs.length);
       U.$('score').textContent = String(state.score).padStart(5, '0'); A.play('match');
-      schedulePPA(effect.reduced ? 40 : 120); return;
+      const left = adjustTime(timeDelta, state.remaining);
+      if (left <= 0) { finish(!E.cells(state.grid).length, 0); return; }
+      scheduleEffect(effect.reduced ? 40 : 120); return;
     }
-    const actual = effect.pairs.length;
-    state.effect = null; U.clearLine(); U.clearPPA();
-    U.toast(actual ? `PPA 消除 ${actual} 對普通寶石 +${actual * DotGame.PPA.pairScore}` : 'PPA 配對完成！已無普通寶石可額外消除。');
+    completeEffect();
+  }
+  function stepBomb() {
+    const effect = state.effect;
+    if (effect.phase === 'reveal') {
+      const changes = effect.pairs.map(pair => E.removePair(state.grid, pair));
+      state.score += effect.pairs.length * DotGame.BOMB.pairScore;
+      U.$('score').textContent = String(state.score).padStart(5, '0');
+      U.board(state.grid, null, changes.flatMap(change => change.thawed), changes.flatMap(change => change.revealed)); U.blast(effect.centers, state.grid, []);
+      const left = adjustTime(changes.reduce((sum, change) => sum + change.timeDelta, 0), state.remaining);
+      if (left <= 0) { finish(!E.cells(state.grid).length, 0); return; }
+      effect.phase = 'settle'; scheduleEffect(effect.reduced ? 40 : 160); return;
+    }
+    completeEffect();
+  }
+  function completeEffect() {
+    const effect = state.effect, actual = effect.pairs.length;
+    state.effect = null; U.clearLine(); U.clearPPA(); U.clearBomb();
+    if (effect.kind === 'bomb') U.toast(actual ? `爆破 ${actual} 對 +${actual * DotGame.BOMB.pairScore}` : '爆破！');
+    else U.toast(actual ? `PPA 消除 ${actual} 對普通寶石 +${actual * DotGame.PPA.pairScore}` : 'PPA 配對完成！已無普通寶石可額外消除。');
     state.status = 'playing';
     const now = performance.now();
     state.deadline = now + state.remaining;
@@ -160,7 +204,7 @@
     if (!state || state.status !== 'paused') return;
     U.closeModal(); modalKind = ''; state.status = state.resumeStatus || 'playing'; state.pauseOnReady = false;
     U.$('board-shell').classList.remove('paused');
-    if (state.status === 'resolving') { schedulePPA(state.effect.delay); return; }
+    if (state.status === 'resolving') { scheduleEffect(state.effect.delay); return; }
     const now = performance.now();
     state.deadline = now + state.remaining;
     state.lastMatch = state.pausedCombo !== null ? now - (COMBO_WINDOW_MS - state.pausedCombo) : null;
@@ -179,10 +223,15 @@
   }
   function finish(won, left) {
     if (!state || ['won', 'lost'].includes(state.status)) return;
+    if (state.effect) {
+      clearTimeout(state.effect.timer); pending.delete(state.effect.timer); state.effect = null;
+      U.clearPPA(); U.clearBomb(); U.clearLine();
+    }
     state.remaining = Math.max(0, left); state.status = won ? 'won' : 'lost'; state.selected = null;
-    cancelAnimationFrame(frame); U.$('board').inert = true; U.select(null); U.updateTime(state.remaining, state.level.seconds);
-    const time = (state.level.seconds * 1000 - state.remaining) / 1000;
-    const rating = won ? E.stars(state.remaining, state.level.seconds * 1000) : 0;
+    cancelAnimationFrame(frame); U.$('board').inert = true; U.select(null); U.updateTime(state.remaining, state.level.seconds, won);
+    const time = Math.max(0, (state.level.seconds * 1000 + state.timeShift - state.remaining) / 1000);
+    // 減時恰好清空最後一對時仍通關，至少一星，時間獎勵為零。
+    const rating = won ? Math.max(1, E.stars(state.remaining, state.level.seconds * 1000)) : 0;
     const bonus = won ? Math.ceil(state.remaining / 1000) * 10 : 0;
     state.score += bonus; U.$('score').textContent = String(state.score).padStart(5, '0');
     const result = { id: state.level.id, stars: rating, score: state.score, time, remaining: state.remaining, bonus };
@@ -199,20 +248,47 @@
       }
       modalKind = 'result';
       const last = state.level.id === LEVELS.length;
-      U.modal(`<div class="eyebrow">${won ? last ? 'ALL STAGES. BEAUTIFULLY CONNECTED.' : 'A BEAUTIFUL CONNECTION' : 'ONE MORE CONNECTION?'}</div><h2>${won ? `第 ${state.level.id} 關完成！` : '時間到了。再來一局？'}</h2>${won ? `<div class="result-stars">${U.stars(rating)}</div><p>${last ? '所有關卡的光都亮起了。回到喜歡的關卡，繼續收集星星。' : rating === 3 ? '節奏剛剛好，三顆星都屬於你。' : '又點亮一關！下次試著更快找到相同的寶石。'}</p>` : '<div class="modal-ornament">↻</div><p>寶石們還在等你。換個節奏，再試一次。<br>已保存的最佳紀錄不受影響。</p>'}<div class="result-stats"><div><span>${won ? '本次總分' : '本次分數'}</span><strong class="gold">${state.score.toLocaleString()}</strong></div><div><span>${won ? '通關耗時' : '本次耗時'}</span><strong>${time.toFixed(1)}<small> s</small></strong></div></div>${won ? `<p>剩餘 ${U.clock(state.remaining / 1000)} · 時間獎勵 +${bonus}</p>${best ? '<p class="new-best">✦ NEW PERSONAL BEST ✦</p>' : ''}${!S.persistent() ? '<p>瀏覽器無法永久儲存，目前紀錄僅保留於此次開啟期間。</p>' : ''}` : ''}<div class="modal-actions">${won && !last ? `<button class="button button-primary" data-action="play" data-level="${state.level.id + 1}">前往第 ${state.level.id + 1} 關 ${U.icon('arrow')}</button>` : `<button class="button button-primary" data-action="${won ? 'levels' : 'retry'}">${won ? '回到關卡選擇' : '再挑戰一次'} ${U.icon(won ? 'arrow' : 'retry')}</button>`}<button class="button button-secondary" data-action="${won ? 'retry' : 'levels'}">${won ? '重玩這一關' : '返回關卡選擇'}</button>${won && !last ? '<button class="text-button" data-action="levels">返回關卡選擇</button>' : ''}</div>`);
+      const story = won && CU.story ? CU.story(state.level.id) + CU.milestone() : '';
+      const rewardsText = state.level.id === 3 ? '查看購買優惠' : '查看活動進度與獎勵';
+      const centennial = won && last && state.level.id === 100;
+      const closing = centennial ? '所有關卡的光都亮起了。100 關的旅程，謝謝你的每一次連線。回到喜歡的關卡，繼續收集星星。' : '所有關卡的光都亮起了。回到喜歡的關卡，繼續收集星星。';
+      U.modal(`${centennial ? '<div class="finale-mark" aria-hidden="true">100</div>' : ''}<div class="eyebrow">${won ? last ? 'ALL STAGES. BEAUTIFULLY CONNECTED.' : 'A BEAUTIFUL CONNECTION' : 'ONE MORE CONNECTION?'}</div><h2>${won ? `第 ${state.level.id} 關完成！` : '時間到了。再來一局？'}</h2>${won ? `<div class="result-stars">${U.stars(rating)}</div><p>${last ? closing : rating === 3 ? '節奏剛剛好，三顆星都屬於你。' : '又點亮一關！下次試著更快找到相同的寶石。'}</p>${story}` : '<div class="modal-ornament">↻</div><p>寶石們還在等你。換個節奏，再試一次。<br>已保存的最佳紀錄不受影響。</p>'}<div class="result-stats"><div><span>${won ? '本次總分' : '本次分數'}</span><strong class="gold">${state.score.toLocaleString()}</strong></div><div><span>${won ? '通關耗時' : '本次耗時'}</span><strong>${time.toFixed(1)}<small> s</small></strong></div></div>${won ? `<p>剩餘 ${U.clock(state.remaining / 1000)} · 時間獎勵 +${bonus}</p>${best ? '<p class="new-best">✦ NEW PERSONAL BEST ✦</p>' : ''}${!S.persistent() ? '<p>瀏覽器無法永久儲存，目前紀錄僅保留於此次開啟期間。</p>' : ''}` : ''}<div class="modal-actions">${won && !last ? `<button class="button button-primary" data-action="play" data-level="${state.level.id + 1}">前往第 ${state.level.id + 1} 關 ${U.icon('arrow')}</button>` : `<button class="button button-primary" data-action="${won ? 'levels' : 'retry'}">${won ? '回到關卡選擇' : '再挑戰一次'} ${U.icon(won ? 'arrow' : 'retry')}</button>`}<button class="button button-secondary" data-action="${won ? 'retry' : 'levels'}">${won ? '重玩這一關' : '返回關卡選擇'}</button>${won ? '<button class="text-button" data-action="rewards">${rewardsText}</button>' : ''}${won && !last ? '<button class="text-button" data-action="levels">返回關卡選擇</button>' : ''}</div>`);
     }, won ? 450 : 150);
   }
   function enterCampaign() {
     const pendingResult = CS.get().pending;
+    if (pendingResult && CS.next() && CS.next() < pendingResult.id) { CS.acknowledge(); start(CS.next(), 'campaign'); return; }
     if (pendingResult) { go('home'); modalKind = 'campaign-result'; CU.result(pendingResult); }
     else if (CS.next()) start(CS.next(), 'campaign');
-    else { go('home'); modalKind = 'campaign-info'; CU.complete(); }
+    else { go('home'); openRewards(); }
+  }
+  function openRewards() {
+    if (modalKind==='rewards' || state && ['ready','shuffling'].includes(state.status)) return;
+    if (state && ['won','lost'].includes(state.status) && !U.$('modal').open) return;
+    rewardBack={kind:modalKind,html:U.$('modal').open?U.$('modal-content').innerHTML:'',campaign:U.$('modal').classList.contains?.('campaign-modal')};
+    if (state && ['playing','resolving'].includes(state.status) && !pause('rewards')) return;
+    rewardContinue=DotGame.Journey.reached(3)&&((state?.status==='won'&&state.level.id===3)||(!state&&DotGame.Journey.count()===3));
+    modalKind='rewards'; rewardNotices=DotGame.Journey.milestones(); CU.rewards(rewardNotices,rewardContinue);
+    if (DotGame.Rewards.available()) refreshRewards();
+  }
+  async function refreshRewards(tier) {
+    const token=++rewardRequest;
+    const task=tier?DotGame.Rewards.claim(tier):DotGame.Rewards.refresh();
+    CU.rewards(rewardNotices,rewardContinue);
+    await task;
+    if(token===rewardRequest&&modalKind==='rewards') CU.rewards(rewardNotices,rewardContinue);
+  }
+  function closeRewards() {
+    rewardRequest++; const back=rewardBack; rewardBack=null; U.closeModal();
+    if(back?.html) { modalKind=back.kind; if(back.campaign) U.$('modal').classList.add('campaign-modal'); U.modal(back.html); }
+    else if(state?.status==='paused') resume();
+    else modalKind='';
   }
   function help() {
     if (state && ['ready', 'shuffling'].includes(state.status)) return;
     if (state && ['playing', 'resolving'].includes(state.status) && !pause('help')) return;
     modalKind = 'help';
-    U.modal(`<div class="eyebrow">THE LITTLE RULEBOOK</div><h2>連起來，就對了。</h2><ol class="help-list"><li>點選兩顆<b>相同顏色</b>的寶石。路線最多轉彎兩次，可以繞到棋盤外。</li><li>路線不能穿過其他寶石或牆壁。第 4 關起出現<b>不可消除的牆壁</b>。</li><li>沒有合法配對時<b>自動洗牌</b>，保留牆壁與空格。洗牌演出不扣時間。</li><li>每次手動成功消除間隔在 <b>5 秒內</b>，連擊可持續累積。每關都有 <b>PPA 白底瓶子</b>，每 20 顆方塊配置 1 對，無條件捨去，至少 1 對、最多 5 對（牆壁與空格不計）。任意兩瓶都能配對，但必須用最多兩次轉彎的合法路線連起來。PPA 本身算一次連擊，依更新後的連擊數，額外消除 <b>1～5 對普通寶石</b>；不足時只消除實際對數。自動消除無須連線，不選 PPA、不增加或刷新連擊。特效期間倒數與連擊都會凍結。</li><li>第 n 次連擊的配對得分為 <b>100 + (n − 1) × 25</b>，每次遞增 25 分，直到連擊中斷。PPA 自動消除每對加 100 分，通關每剩餘 1 秒（無條件進位）加 10 分。</li><li>倒數歸零即失敗。通關解鎖下一關，各關<b>分別保存</b>最高分、最快時間與最佳星級。</li></ol><p class="help-stars">★★★ 剩餘 >50%　★★ 剩餘 25～50%<br>★ 剩餘 >0% 且 <25%</p><p style="margin-top:12px">可用滑鼠或觸控。Tab／方向鍵移動，Enter 選取。<br>Esc 暫停；切換分頁也會自動暫停。</p><div class="modal-actions"><button class="button button-primary" data-action="close-help">知道了，開始連線 ${U.icon('arrow')}</button></div>`);
+    U.modal(`<div class="eyebrow">THE LITTLE RULEBOOK</div><h2>連起來，就對了。</h2><ol class="help-list"><li>點選兩顆<b>相同顏色</b>的寶石。路線最多轉彎兩次，可以繞到棋盤外。</li><li>路線不能穿過其他寶石或牆壁。第 4 關起出現<b>不可消除的牆壁</b>。</li><li>沒有合法配對時<b>自動洗牌</b>，保留牆壁與空格。洗牌演出不扣時間。</li><li>每次手動成功消除間隔在 <b>5 秒內</b>，連擊可持續累積。每關都有 <b>PPA 白底瓶子</b>，每 20 顆方塊配置 1 對，無條件捨去，至少 1 對、最多 5 對（牆壁與空格不計）。任意兩瓶都能配對，但必須用最多兩次轉彎的合法路線連起來。PPA 本身算一次連擊，依更新後的連擊數，額外消除 <b>1～5 對普通寶石</b>；不足時只消除實際對數。自動消除無須連線，不選 PPA、不增加或刷新連擊。特效期間倒數與連擊都會凍結。</li><li>第 n 次連擊的配對得分為 <b>100 + (n − 1) × 25</b>，每次遞增 25 分，直到連擊中斷。PPA 自動消除每對加 100 分，通關每剩餘 1 秒（無條件進位）加 10 分。</li><li>倒數歸零即失敗；若減時消除同時清空最後一對，仍算通關。通關解鎖下一關，各關<b>分別保存</b>最高分、最快時間與最佳星級。</li></ol><p class="help-stars">★★★ 剩餘 >50%　★★ 剩餘 25～50%<br>★ 剩餘 >0% 且 <25%，或減時清空最後一對</p><p style="margin-top:12px">可用滑鼠或觸控。Tab／方向鍵移動，Enter 選取。<br>Esc 暫停；切換分頁也會自動暫停。</p><div class="modal-actions"><button class="button button-primary" data-action="close-help">知道了，開始連線 ${U.icon('arrow')}</button></div>`);
   }
   document.addEventListener('click', event => {
     const tile = event.target.closest('[data-cell]');
@@ -233,9 +309,12 @@
         }
         break;
       }
-      case 'campaign-info': if (!CS.next() && modalKind === 'campaign-result') { CS.acknowledge(); modalKind = 'campaign-info'; CU.complete(); } break;
-      case 'campaign-redeem': if (modalKind === 'campaign-info') CU.redeem(); break;
-      case 'campaign-redeem-cancel': if (modalKind === 'campaign-info') CU.redeem(false); break;
+      case 'campaign-info': if (!CS.next() && modalKind === 'campaign-result') { CS.acknowledge(); openRewards(); } break;
+      case 'journey-continue': if (DotGame.Journey.reached(3)) { CS.acknowledge(); start(4); } break;
+      case 'rewards': openRewards(); break;
+      case 'close-rewards': if(modalKind==='rewards') closeRewards(); break;
+      case 'reward-refresh': if(modalKind==='rewards') refreshRewards(); break;
+      case 'reward-claim': if(modalKind==='rewards') refreshRewards(Number(button.dataset.tier)); break;
       case 'retry': if (state) start(state.level.id, state.mode); break;
       case 'leave': leave(); break;
       case 'pause': pauseDialog(); break;
@@ -247,6 +326,7 @@
   });
   U.$('modal').addEventListener('cancel', event => {
     event.preventDefault();
+    if(modalKind==='rewards') { closeRewards(); return; }
     if (['pause', 'leave', 'help'].includes(modalKind)) { U.closeModal(); if (state?.status === 'paused') resume(); modalKind = ''; }
   });
   document.addEventListener('keydown', event => {
@@ -258,7 +338,7 @@
     const [dr, dc] = { ArrowUp: [-1,0], ArrowDown: [1,0], ArrowLeft: [0,-1], ArrowRight: [0,1] }[event.key] || [0,0];
     let r = Number(focused.dataset.r) + dr, c = Number(focused.dataset.c) + dc;
     while (r > 0 && c > 0 && r <= state.level.rows && c <= state.level.cols) {
-      if (state.grid[r][c] > 0) { U.cell({ r, c })?.focus({ preventScroll: true }); break; }
+      if (state.grid[r][c] > 0 && !E.isFrozen(state.grid[r][c])) { U.cell({ r, c })?.focus({ preventScroll: true }); break; }
       r += dr; c += dc;
     }
   });

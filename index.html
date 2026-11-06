@@ -4,16 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111821">
-  <meta name="description" content="跟著粉紅水母完成三關連連看，探索 PPA 日常保養。另有十六關自由挑戰。">
+  <meta name="description" content="跟著粉紅水母完成 PPA 百關連連看，閱讀日常照護靈感，查看三關購買優惠與 50／100 關加碼方案。">
   <title>PPA 肌膚升級之旅 — DOT TO DOT</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%2388dfb5' d='M8 3h16v5h5v14h-5v5H8v-5H3V8h5z'/%3E%3Cpath fill='%23e4ffe8' d='M9 7h12v4H9z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="campaign.css">
   <script defer src="js/levels.js"></script>
+  <script defer src="js/stories.js"></script>
   <script defer src="js/campaign.js"></script>
   <script defer src="js/engine.js"></script>
   <script defer src="js/storage.js"></script>
   <script defer src="js/campaign-storage.js"></script>
+  <script defer src="js/journey.js"></script>
+  <script defer src="js/rewards.js"></script>
   <script defer src="js/audio.js"></script>
   <script defer src="js/ui.js"></script>
   <script defer src="js/campaign-ui.js"></script>
@@ -38,7 +41,7 @@
   <div class="app-shell">
     <header class="site-header">
       <button class="brand campaign-brand" data-action="home" aria-label="PPA 活動首頁"><span class="brand-gem" aria-hidden="true"></span><span>PPA<small>肌膚升級之旅 · DOT TO DOT</small></span></button>
-      <div class="header-right"><span class="header-caption">A LITTLE CONNECTION. A LITTLE MAGIC.</span><button class="icon-button sound-toggle" data-action="sound" aria-label="關閉音效"></button><button class="icon-button" data-action="help" aria-label="遊戲說明"><svg class="icon"><use href="#i-help"/></svg></button></div>
+      <div class="header-right"><span class="header-caption">A LITTLE CONNECTION. A LITTLE MAGIC.</span><button class="text-button rewards-entry" data-action="rewards">活動獎勵</button><button class="icon-button sound-toggle" data-action="sound" aria-label="關閉音效"></button><button class="icon-button" data-action="help" aria-label="遊戲說明"><svg class="icon"><use href="#i-help"/></svg></button></div>
     </header>
 
     <main>
@@ -68,21 +71,21 @@
           <div class="information-intro"><p class="eyebrow">MEET YOUR DAILY COMPANION</p><h2 id="information-heading">認識 PPA<br>與活動贈禮</h2><p>把保養，放進每天的生活節奏。</p></div>
           <div id="campaign-products"></div>
         </section>
-        <div class="free-challenge"><div><p class="eyebrow">DOT TO DOT · FREE PLAY</p><h2>還想多連幾道光？</h2><p>16 關自由挑戰，繼續收集你的星星。原有進度與紀錄都在。</p></div><button class="button button-secondary" data-action="levels">進入自由挑戰 <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+        <div class="free-challenge"><div><p class="eyebrow">DOT TO DOT · FREE PLAY</p><h2>還想多連幾道光？</h2><p>100 關自由挑戰，繼續收集你的星星。原有進度與紀錄都在。</p></div><button class="button button-secondary" data-action="levels">進入自由挑戰 <svg class="icon"><use href="#i-arrow"/></svg></button></div>
       </section>
 
       <section id="levels-view" class="view levels-view" hidden aria-labelledby="levels-heading">
-        <div class="page-intro"><div><button class="text-button back-home" data-action="home"><svg class="icon"><use href="#i-back"/></svg> 返回首頁</button><div class="eyebrow">CHOOSE YOUR NEXT CONNECTION</div><h1 id="levels-heading">自由挑戰，連起下一顆星。</h1><p>16 關獨立挑戰。已解鎖的關卡，隨時都能再挑戰。</p></div><div class="collection"><span class="gold">★</span><strong id="star-total">00</strong><span>/ 48<br><small>已收集星星</small></span></div></div>
+        <div class="page-intro"><div><button class="text-button back-home" data-action="home"><svg class="icon"><use href="#i-back"/></svg> 返回首頁</button><div class="eyebrow">CHOOSE YOUR NEXT CONNECTION</div><h1 id="levels-heading">自由挑戰，連起下一顆星。</h1><p>100 關獨立挑戰。已解鎖的關卡，隨時都能再挑戰。</p></div><div class="collection"><span class="gold">★</span><strong id="star-total">00</strong><span>/ <span id="star-limit">300</span><br><small>已收集星星</small></span></div></div>
         <div id="level-grid" class="level-grid"></div>
         <p class="save-note"><span class="status-dot"></span><span id="save-note">進度會自動儲存在這個瀏覽器。</span></p>
       </section>
 
       <section id="game-view" class="view game-view" hidden aria-labelledby="game-heading">
-        <div class="game-topline"><button id="game-back" class="text-button" data-action="leave"><svg class="icon"><use href="#i-back"/></svg> 關卡選擇</button><span id="game-stage-label" class="mono muted">STAGE 01 / 16</span><button class="text-button" data-action="pause"><svg class="icon"><use href="#i-pause"/></svg> 暫停</button></div>
+        <div class="game-topline"><button id="game-back" class="text-button" data-action="leave"><svg class="icon"><use href="#i-back"/></svg> 關卡選擇</button><span id="game-stage-label" class="mono muted">STAGE 01 / 100</span><button class="text-button" data-action="pause"><svg class="icon"><use href="#i-pause"/></svg> 暫停</button></div>
         <p id="campaign-game-note" class="campaign-game-note" hidden>找到相同圖案，最多轉彎兩次。5 秒內接續連擊；白底 PPA 也要兩瓶合法配對。</p>
         <div class="game-layout">
           <div class="play-column">
-            <div class="game-heading-row"><div><div class="eyebrow">MAKE A LITTLE MAGIC</div><h1 id="game-heading">第 1 關</h1></div><div class="score-display"><span>本次分數</span><strong id="score">00000</strong></div></div>
+            <div class="game-heading-row"><div><div class="eyebrow">MAKE A LITTLE MAGIC</div><h1 id="game-heading">第 1 關</h1><p id="stage-name" class="stage-name" hidden></p></div><div class="score-display"><span>本次分數</span><strong id="score">00000</strong></div></div>
             <div class="timer-panel"><div class="timer-heading"><span><svg class="icon"><use href="#i-clock"/></svg> 剩餘時間 <strong id="time-text">01:30</strong></span><span class="live-rating"><span>目前評價</span><span id="live-stars" class="stars"></span></span></div><div id="timer-track" class="timer-track" role="progressbar" aria-label="剩餘時間" aria-valuemin="0" aria-valuemax="100"><div id="timer-fill" class="timer-fill"></div><span class="time-mark mark-25" aria-hidden="true"></span><span class="time-mark mark-50" aria-hidden="true"></span></div></div>
             <div id="board-shell" class="board-shell"><div class="board-corner corner-tl"></div><div class="board-corner corner-tr"></div><div class="board-corner corner-bl"></div><div class="board-corner corner-br"></div><div id="board" class="board" role="group" aria-label="寶石棋盤"></div><svg id="connection-layer" class="connection-layer" aria-hidden="true"></svg><div id="board-message" class="board-message" hidden></div></div>
             <div id="ppa-status" class="ppa-status" role="status" aria-live="polite" hidden></div>

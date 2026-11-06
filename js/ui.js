@@ -45,12 +45,15 @@ DotGame.UI = (() => {
       <path fill="#5c3e78" d="M13 44h1v1h-1zm4 0h1v1h-1z"/>
       <path fill="#c0a8dc" d="M21 39h1v1h1v1h-1v1h-1v-1h-1v-1h1z"/>
     </svg>`;
-    const g = DotGame.GEMS[id - 1];
+    const g = DotGame.GEMS[DotGame.Engine.baseValue(id) - 1];
     return `<svg class="gem" viewBox="0 0 24 27" shape-rendering="crispEdges" aria-hidden="true"><path fill="${g.dark}" d="M6 1h12v3h3v3h2v12h-3v3h-3v3H7v-3H4v-3H1V7h2V4h3z"/><path fill="${g.color}" d="M6 3h12v3h3v11h-3v4h-4v2h-4v-2H6v-4H3V7h3z"/><path fill="${g.light}" d="M6 3h12v3H9v3H6v7H3V7h3z"/><path fill="${g.dark}" opacity=".65" d="M18 9h3v8h-3v4h-4v2h-4v-3h6v-4h2z"/><g fill="${g.light}" opacity=".85">${marks[g.mark]}</g><path fill="#fff" opacity=".6" d="M6 4h3v3H6z"/></svg>`;
   }
   const wall = '<svg class="wall-art" viewBox="0 0 30 28" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 3h11v6H2zm14 0h12v6H16zM2 12h5v6H2zm8 0h12v6H10zm15 0h3v6h-3zM2 21h11v5H2zm14 0h12v5H16z"/></svg>';
   // 一至五顆星點直接對應目前可觸發強度；不是另一套能量值。
   const ppaSparks = `<svg class="ppa-sparks" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true">${[[13,18],[85,76],[15,78],[84,20],[12,48]].map(([x,y],i)=>`<path class="ppa-spark spark-${i+1}" d="M${x-1} ${y-5}h2v4h4v2h-4v4h-2v-4h-4v-2h4z"/>`).join('')}</svg>`;
+  const bombBadge = '<svg class="bomb-badge" viewBox="0 0 24 24" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ffdb8a" d="M14 1h5v2h3v3h-3V4h-3v4h-2z"/><path fill="#1c2230" stroke="#ffdb8a" stroke-width="2" d="M9 7h6v2h3v3h2v7h-3v3H6v-3H3v-7h2V9h4z"/><path fill="#fff0be" d="M7 12h3v3H7z"/><path fill="#ffb35c" d="M17 0h2v2h-2zm4 2h3v2h-3z"/></svg>';
+  const iceShell = '<svg class="ice-shell" viewBox="0 0 40 40" aria-hidden="true"><path fill="#a8e8ff" fill-opacity=".22" stroke="#c7f4ff" stroke-width="2" d="M7 2h27l4 5v26l-5 5H6l-4-5V8z"/><path fill="none" stroke="#71c5ef" stroke-width="2" d="M3 9l7 4-2 15-5 5m31-30-5 9 3 16 5 5M8 37l5-8 15 3 5 5"/><path fill="none" stroke="#ecfdff" stroke-width="2" d="M9 5h19M5 13v10m7-10 5 6-3 5m3-5 8-3m4 9 4 7"/></svg>';
+  const clockBadge = type => `<svg class="clock-badge ${type === 1 ? 'clock-plus' : 'clock-minus'}" viewBox="0 0 36 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#15232d" stroke="currentColor" stroke-width="2"/><path d="M12 5v7l4 3M25 12h10${type === 1 ? 'M30 7v10' : ''}" fill="none" stroke="currentColor" stroke-width="3"/></svg>`;
   function pixelTitle() {
     const letters = { D: ['11110','10001','10001','10001','10001','10001','11110'], O: ['01110','11011','10001','10001','10001','11011','01110'], T: ['11111','00100','00100','00100','00100','00100','00100'] };
     const word = (text, x, y, color) => [...text].map((letter, n) => letters[letter]?.map((row, r) => [...row].map((v, c) => v === '1' ? `<rect x="${x + n * 6 + c}" y="${y + r}" width="1" height="1" fill="${color}"/>` : '').join('')).join('')).join('');
@@ -69,11 +72,13 @@ DotGame.UI = (() => {
   }
   function levels() {
     const data = DotGame.Storage.get();
+    $('star-limit').textContent = String(DotGame.LEVELS.length * 3);
     $('star-total').textContent = String(Object.values(data.records).reduce((sum, rec) => sum + rec.stars, 0)).padStart(2, '0');
     $('level-grid').innerHTML = DotGame.LEVELS.map(level => {
       const rec = data.records[level.id], locked = level.id > data.unlocked;
+      const sharedComplete = level.id <= 3 && !rec && !!DotGame.Journey?.has(level.id);
       const mini = level.layout.map(row => [...row].map(v => `<span class="preview-cell ${v === '.' ? 'hole' : v === '#' ? 'wall' : ''}"></span>`).join('')).join('');
-      return `<button class="level-card ${locked ? 'locked' : !rec ? 'next' : ''}" data-action="play" data-level="${level.id}" ${locked ? 'disabled' : ''} aria-label="第 ${level.id} 關，${locked ? '尚未解鎖' : rec ? `${rec.stars} 顆星，可重新挑戰` : '開始挑戰'}"><div class="level-card-top"><h2>第 ${level.id} 關</h2><span>${String(level.id).padStart(2, '0')} / ${DotGame.LEVELS.length}</span></div><div class="level-preview" style="--preview-cols:${level.cols}">${mini}</div>${locked ? `<span class="lock-icon">${icon('lock')}</span>` : ''}<div class="level-info"><span>${level.colors} 色 · ${level.tiles} 顆${level.walls ? ' · 牆壁' : ''}</span><span>${icon('clock')}${clock(level.seconds)}</span></div><div class="level-card-bottom">${stars(rec?.stars || 0)}<span>${locked ? `通過第 ${level.id - 1} 關解鎖` : rec ? `${rec.score.toLocaleString()} 分` : '開始挑戰 →'}</span></div></button>`;
+      return `<button class="level-card ${locked ? 'locked' : sharedComplete ? 'completed' : !rec ? 'next' : ''}" data-action="play" data-level="${level.id}" ${locked ? 'disabled' : ''} aria-label="第 ${level.id} 關，${level.name ? level.name + '，' : ''}${locked ? '尚未解鎖' : rec ? `${rec.stars} 顆星，可重新挑戰` : sharedComplete ? '活動已完成，可挑戰自由模式紀錄' : '開始挑戰'}"><div class="level-card-top"><h2>第 ${level.id} 關</h2><span>${String(level.id).padStart(2, '0')} / ${DotGame.LEVELS.length}</span></div>${level.name ? `<p class="level-name">${level.name}</p>` : ''}<div class="level-preview" style="--preview-cols:${level.cols}">${mini}</div>${locked ? `<span class="lock-icon">${icon('lock')}</span>` : ''}<div class="level-info"><span>${level.colors} 色 · ${level.tiles} 顆${level.walls ? ' · 牆壁' : ''}</span><span>${icon('clock')}${clock(level.seconds)}</span></div><div class="level-card-bottom">${stars(rec?.stars || 0)}<span>${locked ? `通過第 ${level.id - 1} 關解鎖` : rec ? `${rec.score.toLocaleString()} 分` : sharedComplete ? '活動已完成' : '開始挑戰 →'}</span></div></button>`;
     }).join('');
     $('save-note').textContent = DotGame.Storage.persistent() ? '進度會自動儲存在這個瀏覽器。' : '瀏覽器目前無法儲存，關閉頁面後紀錄可能消失。';
   }
@@ -81,6 +86,7 @@ DotGame.UI = (() => {
     const campaign = mode === 'campaign';
     const rec = (campaign ? DotGame.CampaignStorage : DotGame.Storage).get().records[level.id];
     $('game-heading').textContent = `第 ${level.id} 關`;
+    $('stage-name').textContent = level.name || ''; $('stage-name').hidden = !level.name;
     $('game-stage-label').textContent = campaign ? `PPA JOURNEY ${level.id} / 3` : `STAGE ${String(level.id).padStart(2, '0')} / ${DotGame.LEVELS.length}`;
     $('game-back').innerHTML = `${icon('back')} ${campaign ? '活動首頁' : '關卡選擇'}`;
     $('campaign-game-note').hidden = !campaign;
@@ -91,6 +97,7 @@ DotGame.UI = (() => {
     $('best-score').textContent = rec ? rec.score.toLocaleString() : '—';
     $('best-time').textContent = rec ? formatTime(rec.time) : '—';
     $('board-shell').classList.remove('cleared', 'paused', 'shuffling', 'ppa-active');
+    clearBomb();
     $('ppa-info').hidden = !level.ppaPairs;
     $('ppa-notice').hidden = !level.ppaPairs;
     $('ppa-notice').innerHTML = level.ppaPairs ? `${gem(DotGame.PPA.id)}<span>本關 ${level.ppaPairs} 對 PPA（${level.ppaPairs * 2} 顆）。任意兩瓶合法連線，依連擊額外消除 1～5 對普通寶石。</span>` : '';
@@ -101,7 +108,7 @@ DotGame.UI = (() => {
     $('board-shell').style.setProperty('--board-ratio', (level.cols + 1) / (level.rows + 1));
     clearLine(); message('');
   }
-  function board(grid, selected) {
+  function board(grid, selected, thawed = [], revealed = []) {
     const hasPPA = grid.some(row => row.some(DotGame.Engine.isPPA));
     $('ppa-info').hidden = !hasPPA; $('ppa-notice').hidden = !hasPPA;
     const focus = document.activeElement?.closest('[data-cell]');
@@ -113,23 +120,40 @@ DotGame.UI = (() => {
       if (value === -1) return `<span class="board-cell wall" role="img" aria-label="牆壁，第 ${r} 列第 ${c} 格">${wall}</span>`;
       const isSelected = selected && selected.r === r && selected.c === c;
       const ppa = DotGame.Engine.isPPA(value);
-      return `<button class="board-cell ${ppa ? 'ppa-tile' : ''} ${isSelected ? 'selected' : ''}" data-cell="${r},${c}" data-r="${r}" data-c="${c}" aria-label="${ppa ? 'PPA 特殊瓶子' : DotGame.GEMS[value - 1].name + '色寶石'}，第 ${r} 列第 ${c} 格" aria-pressed="${!!isSelected}">${ppa ? ppaSparks : ''}${gem(value)}</button>`;
+      const bomb = DotGame.Engine.isBomb(value);
+      const frozen = DotGame.Engine.isFrozen(value), melting = thawed.some(p => p.r === r && p.c === c);
+      const fog = DotGame.Engine.fogDepth(value), clearing = revealed.some(p => p.r === r && p.c === c);
+      const time = DotGame.Engine.clockType(value);
+      return `<button class="board-cell ${ppa ? 'ppa-tile' : bomb ? 'bomb-tile' : ''} ${isSelected ? 'selected' : ''}${frozen ? ' frozen' : melting ? ' ice-thaw' : ''}${fog ? ' fogged' : ''}${clearing ? fog ? ' fog-thinning' : ' fog-reveal' : ''}" data-fog="${fog}" data-cell="${r},${c}" data-r="${r}" data-c="${c}" ${frozen ? 'disabled' : ''} aria-label="${frozen ? '冰封，' : ''}${fog ? '薄霧中的寶石' : ppa ? 'PPA 特殊瓶子' : (time ? time === 1 ? '加時，' : '減時，' : '') + (bomb ? '帶炸彈標記的' : '') + DotGame.GEMS[DotGame.Engine.baseValue(value) - 1].name + '色寶石'}，第 ${r} 列第 ${c} 格" aria-pressed="${!!isSelected}">${ppa ? ppaSparks : ''}${gem(value)}${bomb ? bombBadge : ''}${time ? clockBadge(time) : ''}${frozen || melting ? iceShell : ''}${fog || clearing ? '<span class="fog-veil" aria-hidden="true"></span>' : ''}</button>`;
     }).join('')).join('');
     if (focusKey) {
-      const replacement = document.querySelector(`[data-cell="${focusKey}"]`) || $('board').querySelector('button');
+      const replacement = document.querySelector(`[data-cell="${focusKey}"]:not(:disabled)`) || $('board').querySelector('button:not(:disabled)');
       replacement?.focus({ preventScroll: true });
     }
   }
   function select(point) {
+    clearBomb();
     document.querySelectorAll('.board-cell.selected').forEach(el => { el.classList.remove('selected'); el.setAttribute('aria-pressed', 'false'); });
     if (point) {
       const el = cell(point); el?.classList.add('selected'); el?.setAttribute('aria-pressed', 'true');
     }
   }
   const cell = p => document.querySelector(`[data-cell="${p.r},${p.c}"]`);
-  function updateTime(ms, total) {
-    const fraction = Math.max(0, ms / (total * 1000));
-    const rating = DotGame.Engine.stars(ms, total * 1000);
+  // 以格位索引標示引爆處與全盤抽中的兩顆寶石，不改動棋盤尺寸。
+  const boardCell = (p, grid) => $('board').children[p.r * grid[0].length + p.c];
+  function clearBomb() {
+    document.querySelectorAll('.bomb-hit,.bomb-origin').forEach(el => {
+      el.classList.remove('bomb-hit', 'bomb-origin');
+    });
+  }
+  function blast(centers, grid, pairs) {
+    clearBomb();
+    for (const p of centers) boardCell(p, grid)?.classList.add('bomb-origin');
+    for (const p of pairs.flat()) boardCell(p, grid)?.classList.add('bomb-hit');
+  }
+  function updateTime(ms, total, won = false) {
+    const fraction = Math.min(1, Math.max(0, ms / (total * 1000)));
+    const rating = won ? Math.max(1, DotGame.Engine.stars(ms, total * 1000)) : DotGame.Engine.stars(ms, total * 1000);
     $('time-text').textContent = clock(ms / 1000);
     $('timer-fill').style.width = `${fraction * 100}%`;
     $('timer-track').className = `timer-track ${rating === 2 ? 'two' : rating <= 1 ? 'one' : ''}`;
@@ -188,5 +212,5 @@ DotGame.UI = (() => {
     if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
   }
   function closeModal() { if ($('modal').open) $('modal').close(); $('modal').classList.remove('campaign-modal', 'reward-modal'); }
-  return { $, icon, stars, clock, formatTime, gem, pixelTitle, demo, showView, levels, setupStage, board, select, cell, updateTime, combo, ppaFeedback, clearPPA, line, clearLine, message, soundButton, toast, clearToast, modal, closeModal };
+  return { $, icon, stars, clock, formatTime, gem, pixelTitle, demo, showView, levels, setupStage, board, select, cell, updateTime, combo, ppaFeedback, clearPPA, blast, clearBomb, line, clearLine, message, soundButton, toast, clearToast, modal, closeModal };
 })();

@@ -35,7 +35,7 @@ function boot(grid, reduced = false) {
   D.UI={ $:node, icon:()=>'',stars:()=>'',clock:String,showView(){},levels(){},setupStage(){},
     board(g){rendered=g.map(row=>row.slice());},select(){},cell:()=>node('tile'),
     updateTime(ms){clock=ms;},combo(n){combo=n;},line(p,g,bonus){if(bonus)effects++;},clearLine(){},message(){},
-    ppaFeedback(){},clearPPA(){},clearToast(){toast='';},toast(text){toast=text;},modal(html){dialog=html;node('modal').open=true;},
+    ppaFeedback(){},clearPPA(){},blast(){},clearBomb(){},clearToast(){toast='';},toast(text){toast=text;},modal(html){dialog=html;node('modal').open=true;},
     closeModal(){dialog='';node('modal').open=false;},soundButton(){},pixelTitle(){},demo(){}
   };
   vm.runInContext(source('game'),ctx);
