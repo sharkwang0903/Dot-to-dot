@@ -26,6 +26,13 @@ assert.ok(t.D.Storage.get().records[4]);assert.equal(Object.keys(t.D.CampaignSto
 // 自由前三關可重讀，與活動去重；沒有活動分數時也可用共享資格接續。
 t.action('play',1);t.advance(650);t.solve();assert.equal(t.D.Journey.count(),4);
 assert.ok(t.D.Storage.get().records[1]);assert.ok(t.D.CampaignStorage.get().records[1]);
+assert.match(t.dialog,/data-action="rewards">查看活動進度與獎勵<\/button>/);
+// 自由模式第三關採購買優惠名稱，並可開啟獎勵、返回原結算。
+t.action('play',3);t.advance(650);t.solve();assert.equal(t.D.Journey.count(),4);
+assert.match(t.dialog,/data-action="rewards">查看購買優惠<\/button>/);
+assert.doesNotMatch(t.dialog,/\$\{[^}]*\}/);
+const thirdResult=t.dialog;t.action('rewards');assert.match(t.dialog,/你的百關旅程/);
+t.action('close-rewards');assert.equal(t.dialog,thirdResult);
 const freeOnly=new Map([['dot-to-dot.v1',JSON.stringify({unlocked:4,records:Object.fromEntries([1,2,3].map(id=>[id,{stars:2,score:100,time:20}]))})]]);
 let f=boot(freeOnly);assert.equal(f.D.CampaignStorage.next(),null);assert.equal(f.D.Journey.count(),3);
 f.action('campaign-start');assert.match(f.dialog,/已解鎖購買優惠/);
@@ -58,3 +65,13 @@ console.log('PASS: 失敗不累計、重試、無存檔權限備援；所有測�
 const gapped=boot(new Map([['ppa-campaign.v1',JSON.stringify({records:{3:{score:100,time:20,stars:2}},pending:{id:3,score:100,time:20,stars:2,remaining:30000,bonus:300}})]]));
 assert.equal(gapped.D.Journey.count(),1);assert.equal(gapped.D.Journey.reached(3),false);
 gapped.action('campaign-start');gapped.advance(650);assert.equal(gapped.stage,1);
+// 其他常見畫面的所有 HTML／文字輸出由 harness 檢查，不能殘留模板變數。
+const screens=boot();
+screens.action('help');assert.match(screens.dialog,/連起來，就對了/);screens.action('close-help');
+screens.action('play',1);screens.advance(650);
+screens.action('pause');assert.match(screens.dialog,/休息一下/);
+screens.action('help');assert.match(screens.dialog,/連起來，就對了/);screens.action('close-help');
+screens.action('leave');assert.match(screens.dialog,/先離開這一局/);screens.action('resume');
+screens.action('rewards');assert.match(screens.dialog,/你的百關旅程/);screens.action('close-rewards');
+screens.advance(90200);assert.match(screens.dialog,/時間到了/);
+console.log('PASS: 首頁、說明、暫停、離開、獎勵與失敗畫面文字均無未替換變數');

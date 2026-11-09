@@ -34,7 +34,7 @@
       <symbol id="i-clock" viewBox="0 0 24 24"><path d="M8 2h8M12 6v7l4 2"/><circle cx="12" cy="13" r="8"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5zM12 14v3"/></symbol>
       <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></symbol>
-      <symbol id="i-star" viewBox="0 0 20 20"><path d="M8 1h4v4h4v3h3v4h-5v6h-4v-3H7v3H3v-6H0V8h4V5h4z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-star" viewBox="0 0 20 20" fill="currentColor" stroke="none" shape-rendering="crispEdges"><path d="M9 1H11V3H12V5H13V7H19V9H18V10H17V11H16V12H15V15H16V18H14V17H12V16H11V15H9V16H8V17H6V18H4V15H5V12H4V11H3V10H2V9H1V7H7V5H8V3H9Z"/><path d="M9 3H11V5H9ZM8 5H12V7H8ZM3 8H17V9H3Z" fill="#fff" opacity=".16"/></symbol>
     </defs>
   </svg>
   <div class="ambient" aria-hidden="true"></div>
@@ -75,7 +75,7 @@
       </section>
 
       <section id="levels-view" class="view levels-view" hidden aria-labelledby="levels-heading">
-        <div class="page-intro"><div><button class="text-button back-home" data-action="home"><svg class="icon"><use href="#i-back"/></svg> 返回首頁</button><div class="eyebrow">CHOOSE YOUR NEXT CONNECTION</div><h1 id="levels-heading">自由挑戰，連起下一顆星。</h1><p>100 關獨立挑戰。已解鎖的關卡，隨時都能再挑戰。</p></div><div class="collection"><span class="gold">★</span><strong id="star-total">00</strong><span>/ <span id="star-limit">300</span><br><small>已收集星星</small></span></div></div>
+        <div class="page-intro"><div><button class="text-button back-home" data-action="home"><svg class="icon"><use href="#i-back"/></svg> 返回首頁</button><div class="eyebrow">CHOOSE YOUR NEXT CONNECTION</div><h1 id="levels-heading">自由挑戰，連起下一顆星。</h1><p>100 關獨立挑戰。已解鎖的關卡，隨時都能再挑戰。</p></div><div class="collection"><span class="gold" aria-hidden="true"><svg class="icon collection-star"><use href="#i-star"/></svg></span><strong id="star-total">00</strong><span>/ <span id="star-limit">300</span><br><small>已收集星星</small></span></div></div>
         <div id="level-grid" class="level-grid"></div>
         <p class="save-note"><span class="status-dot"></span><span id="save-note">進度會自動儲存在這個瀏覽器。</span></p>
       </section>

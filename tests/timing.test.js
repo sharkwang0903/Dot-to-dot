@@ -104,6 +104,8 @@ for (let id = 8; id <= 100; id++) {
   }
   advance(1000); // 最後一對可能是 PPA，需等演出收尾及通關視窗。
   assert.match(dialog, new RegExp(`第 ${id} 關完成`));
+  assert.match(dialog, /data-action="rewards">查看活動進度與獎勵<\/button>/, `第 ${id} 關的獎勵按鈕須顯示實際文字`);
+  assert.doesNotMatch(dialog, /\$\{[^}]*\}/, `第 ${id} 關結算不得殘留未替換的變數`);
   assert.equal(D.Storage.get().records[id].stars, 3);
   assert.equal(D.Storage.get().unlocked, Math.min(100, id + 1));
   if (id < 100) {

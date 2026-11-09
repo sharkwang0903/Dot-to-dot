@@ -1,5 +1,6 @@
 /* 真實模組與控制器，虛擬時鐘／DOM／隔離存檔；不碰玩家資料。 */
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const assertRenderedText=require('./assert-rendered-text');
 const source=name=>fs.readFileSync(path.join(__dirname,'../../js',name+'.js'),'utf8');
 function boot(memory=new Map(),deny=false) {
   let now=1000,serial=0,rendered=[],dialog='',clock=0,mode='',stage=0;
@@ -7,7 +8,12 @@ function boot(memory=new Map(),deny=false) {
   function node(id) {
     if(!nodes.has(id)) { const classes=new Set(); nodes.set(id,{textContent:'',innerHTML:'',dataset:{},style:{},inert:false,focus(){},scrollIntoView(){},
       classList:{add(...names){names.forEach(n=>classes.add(n));},remove(...names){names.forEach(n=>classes.delete(n));},contains:n=>classes.has(n)},
-      addEventListener(type,fn){events[id+':'+type]=fn;}}); }
+      addEventListener(type,fn){events[id+':'+type]=fn;}});
+      for(const key of ['innerHTML','textContent']) {
+        let value='';
+        Object.defineProperty(nodes.get(id),key,{get:()=>value,set(next){assertRenderedText(next,`${id}.${key}`);value=next;}});
+      }
+    }
     return nodes.get(id);
   }
   const ctx={console,performance:{now:()=>now},matchMedia:()=>({matches:false}),
@@ -20,7 +26,7 @@ function boot(memory=new Map(),deny=false) {
   const D=ctx.DotGame; D.Audio={play(){}};
   D.UI={$:node,icon:()=>'',stars:n=>`stars:${n}`,clock:n=>String(n),gem:()=>'<svg></svg>',
     showView(){},levels(){},setupStage(l,p,m){stage=l.id;mode=m;},board(g){rendered=g.map(r=>r.slice());},select(){},cell:()=>node('tile'),
-    updateTime(ms){clock=ms;},combo(){},line(){},clearLine(){},message(){},ppaFeedback(){},clearPPA(){},blast(){},clearBomb(){},clearToast(){},toast(){},soundButton(){},
+    updateTime(ms){clock=ms;},combo(){},line(){},clearLine(){},message(text){assertRenderedText(text,'棋盤提示');},ppaFeedback(){},clearPPA(){},blast(){},clearBomb(){},clearToast(){},toast(text){assertRenderedText(text,'浮動提示');},soundButton(){},
     modal(html){dialog=html;node('modal-content').innerHTML=html;node('modal').open=true;},closeModal(){dialog='';node('modal-content').innerHTML='';node('modal').open=false;node('modal').classList.remove('campaign-modal','reward-modal');}};
   vm.runInContext(source('campaign-ui'),ctx);vm.runInContext(source('game'),ctx);
   function advance(ms){const target=now+ms;for(let i=0;i<100000;i++){const item=[...jobs].sort((a,b)=>a[1].at-b[1].at)[0];if(!item||item[1].at>target)break;now=item[1].at;jobs.delete(item[0]);item[1].fn();}now=target;}

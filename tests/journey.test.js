@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {boot}=require('./helpers/game-harness');
+const assertRenderedText=require('./helpers/assert-rendered-text');
 const rec={score:1234,time:22.5,stars:2};
 const records=n=>Object.fromEntries(Array.from({length:n},(_,i)=>[i+1,{...rec,score:rec.score+i}]));
 const memory=(n,extra={})=>new Map([['dot-to-dot.v1',JSON.stringify({unlocked:Math.min(100,n+1),records:records(n),sound:false,...extra})]]);
@@ -11,6 +12,7 @@ async function run() {
   assert.equal(JSON.stringify(D.Stories.contents.filter(e=>e.category==='ingredients').map(e=>e.contentId)),JSON.stringify([3,4,5]));
   for(let id=1;id<=100;id++) {
     const item=D.Stories.forLevel(id),html=D.CampaignUI.story(id);
+    assertRenderedText(html,`第 ${id} 關通關介紹`);
     assert.ok(item.contentId>=1&&item.contentId<=100&&item.display.title&&item.display.body);
     assert.ok(html.includes(item.display.title)&&html.includes(item.display.body));
     assert.doesNotMatch(html,/company-review|candidate-awaiting|authorized-neutral|公司確認|成品資料支持|止痛用途|候選題目|Markdown/);

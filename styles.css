@@ -25,8 +25,8 @@
 .board-cell.ppa-tile.selected::before{animation:none;opacity:1}
 .board-cell .ppa-bottle{width:74%;height:94%;max-width:none;position:relative;z-index:2;filter:drop-shadow(-1px 0 1px #bfe8f588) drop-shadow(1px 1px 1px #9373ba99)}
 .ppa-sparks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
-.ppa-spark{display:none;fill:#8e6cb3;stroke:#76638d;stroke-width:.5}
-.ppa-spark:nth-child(even){fill:#8ac6db;stroke:#668dba}
+.ppa-spark{display:none;color:#8e6cb3}
+.ppa-spark:nth-child(even){color:#8ac6db}
 .ppa-spark.spark-1,.board[data-ppa-power="2"] .spark-2,.board[data-ppa-power="3"] :is(.spark-2,.spark-3),.board[data-ppa-power="4"] :is(.spark-2,.spark-3,.spark-4),.board[data-ppa-power="5"] .ppa-spark{display:block}
 .paused .ppa-tile::before{animation-play-state:paused}
 @keyframes ppa-breathe{0%,100%{opacity:calc(var(--charge) * .65)}50%{opacity:var(--charge)}}
@@ -75,3 +75,16 @@
 .level-name,.stage-name{font-size:12px;color:var(--gold);letter-spacing:2px;margin-top:5px}
 .level-name{margin-bottom:-8px}
 .finale-mark{display:grid;place-items:center;width:94px;height:94px;margin:0 auto 18px;border:1px solid #e7c77d88;border-radius:50%;font:36px var(--mono);color:var(--gold);background:radial-gradient(circle,#e7c77d20,transparent 72%);box-shadow:0 0 30px #e7c77d14}
+
+/* 所有星星共用對稱的像素輪廓；維持各畫面原有尺寸與配色。 */
+.collection .collection-star{width:25px;height:25px}
+.new-best{display:flex;align-items:center;justify-content:center;gap:7px}
+.new-best .icon{width:11px;height:11px}
+.help-stars>p{display:flex;align-items:center;gap:10px;margin:6px 0;color:var(--gold);text-align:left}
+.help-stars .stars{flex-shrink:0}
+.help-stars .icon{width:12px;height:12px}
+
+/* 通關操作同一層級：統一深色按鈕，滑鼠移入才變為青綠色。 */
+.modal-actions.result-actions>button{display:inline-flex;align-items:center;align-self:stretch;justify-content:center;gap:14px;width:100%;min-height:51px;padding:12px 24px;border:1px solid var(--line);border-radius:2px;font-size:14px;font-weight:700;letter-spacing:1px;background:var(--panel-light);color:var(--ink);box-shadow:0 3px 0 #0c141c;transition:transform .15s,background .15s,box-shadow .15s}
+@media(hover:hover){.modal-actions.result-actions>button:hover{background:var(--mint);border-color:transparent;color:#142b25;box-shadow:0 4px 0 #4d8c71;transform:translateY(-2px)}}
+.modal-actions.result-actions>button:active{transform:translateY(2px);box-shadow:none}

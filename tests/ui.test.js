@@ -3,13 +3,20 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const assertRenderedText = require('./helpers/assert-rendered-text');
 const nodes = new Map();
 function node(id) {
-  if (!nodes.has(id)) nodes.set(id, {
+  if (!nodes.has(id)) {
+    nodes.set(id, {
     textContent: '', innerHTML: '', hidden: false,
     style: { setProperty(key, value) { this[key] = value; } },
     classList: { remove() {} }
-  });
+    });
+    for (const key of ['innerHTML', 'textContent']) {
+      let value = '';
+      Object.defineProperty(nodes.get(id), key, { get: () => value, set(next) { assertRenderedText(next, `${id}.${key}`); value = next; } });
+    }
+  }
   return nodes.get(id);
 }
 const context = { document: { getElementById: node, querySelectorAll: () => [] }, localStorage: { getItem: () => null, setItem() {} } };
