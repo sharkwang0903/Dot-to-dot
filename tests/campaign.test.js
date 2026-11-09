@@ -3,8 +3,9 @@ const assert=require('node:assert/strict');
 const {boot}=require('./helpers/game-harness');
 const saved=new Map(); let t=boot(saved);
 assert.equal(t.D.LEVELS.length,100);assert.equal(t.D.CampaignStorage.next(),1);
-assert.match(t.node('campaign-products').innerHTML,/買一次符合活動條件/);
-assert.doesNotMatch(t.node('campaign-products').innerHTML,/NT\$|30 mL|止痛/);
+assert.match(t.node('campaign-detail').innerHTML,/於購買時享優惠/);
+assert.doesNotMatch(t.node('campaign-detail').innerHTML,/NT\$|30 mL|止痛/);
+assert.equal(t.node('campaign-replay-details').hidden,true,'首次進入不顯示重玩區');
 t.action('campaign-play',3);assert.equal(t.stage,0);
 for(let id=1;id<=3;id++) {
   t.action(id===1?'campaign-start':'campaign-next',id,true);t.advance(650);
@@ -13,10 +14,15 @@ for(let id=1;id<=3;id++) {
   assert.equal(t.D.Journey.count(),id);assert.equal(t.D.Storage.get().unlocked,id+1);
   assert.equal(Object.keys(t.D.Storage.get().records).length,0,'活動分數不搬到自由模式');
   const left=t.clock;t.advance(180000);assert.equal(t.clock,left);
-  t=boot(saved);t.action('campaign-start');assert.equal(t.stage,0);assert.match(t.dialog,new RegExp(`第 ${id} 關完成`));
+  t=boot(saved);
+  assert.equal(t.node('campaign-replay-details').hidden,false);
+  assert.equal(t.node('campaign-replay-progress').textContent,`已完成 ${id}／3 關`);
+  t.action('campaign-start');assert.equal(t.stage,0);assert.match(t.dialog,new RegExp(`第 ${id} 關完成`));
 }
 assert.match(t.dialog,/查看購買優惠/);assert.match(t.dialog,/繼續第 4 關/);
 t.action('campaign-info',1,true);assert.match(t.dialog,/已完成 <strong>3／100 關/);
+assert.match(t.dialog,/買一次符合活動條件/);
+assert.doesNotMatch(t.dialog,/NT\$|30 mL|止痛/);
 assert.match(t.dialog,/已解鎖購買優惠/);assert.match(t.dialog,/尚未核發優惠/);
 assert.match(t.dialog,/rel="noopener noreferrer"/);assert.equal(t.D.Rewards.status(3).claim,'none');
 t.action('close-rewards');assert.match(t.dialog,/第 3 關完成/);
@@ -35,6 +41,8 @@ const thirdResult=t.dialog;t.action('rewards');assert.match(t.dialog,/你的百�
 t.action('close-rewards');assert.equal(t.dialog,thirdResult);
 const freeOnly=new Map([['dot-to-dot.v1',JSON.stringify({unlocked:4,records:Object.fromEntries([1,2,3].map(id=>[id,{stars:2,score:100,time:20}]))})]]);
 let f=boot(freeOnly);assert.equal(f.D.CampaignStorage.next(),null);assert.equal(f.D.Journey.count(),3);
+assert.equal(f.node('campaign-replay-details').hidden,false,'自由模式前三關也可使用重玩入口');
+assert.equal(f.node('campaign-replay-progress').textContent,'已完成 3／3 關');
 f.action('campaign-start');assert.match(f.dialog,/已解鎖購買優惠/);
 f.action('journey-continue');f.advance(650);assert.equal(f.stage,4);
 // 遊戲中查看獎勵暫停並恢復；Esc 與返回都可用，不消耗倒數。

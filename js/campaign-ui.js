@@ -4,20 +4,20 @@ DotGame.CampaignUI = (() => {
   const escape = text => String(text).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const mascot = () => `<img class="campaign-mascot story-mascot" src="${C.mascot}" alt="粉紅水母陪你認識日常照護" width="1320" height="1200">`;
   const rules = () => `<details class="offer-details"><summary>活動辦法</summary><ul>${C.offer.rules.map(line=>`<li>${escape(line)}</li>`).join('')}</ul></details>`;
-  function productInfo() {
-    return `<div class="product-info offer-overview"><p class="eyebrow">PPA · 百關旅程</p><h3>${escape(C.offer.title)}</h3><p class="offer-extra">${escape(C.offer.extra)}</p><p>完成前三關，解鎖購買優惠。買一次符合活動條件的 PPA，50 關加贈一組，100 關再加贈一組。</p><p>每組加碼為 1 瓶 PPA＋1 個水母公仔；可先玩再買，也可先買再玩。</p>${rules()}<button class="button button-secondary" data-action="rewards">查看活動進度與獎勵</button><a class="button button-secondary official-link" href="${C.website}" target="_blank" rel="noopener noreferrer">前往官網查看 PPA ↗</a></div>`;
-  }
   function home() {
     U.$('campaign-name').textContent=C.name;
     U.$('home-heading').innerHTML=escape(C.title).replace('，','，<br>');
     U.$('campaign-intro').textContent=C.intro;
     U.$('campaign-detail').innerHTML=`<strong>${escape(C.offer.title)}</strong><span>${escape(C.offer.extra)}</span><small>${escape(C.detail)}</small>`;
     U.$('campaign-welcome').innerHTML=`<img class="campaign-mascot" src="${C.heroImage}" alt="粉紅水母抱著 PPA 按壓瓶" width="1315" height="1197"><div class="welcome-note"><span>LET’S MAKE A CONNECTION</span><p>跟我一起，連起日常保養的靈感。</p></div>`;
-    U.$('campaign-products').innerHTML=productInfo();
     const data=S.get(), count=J.count();
     U.$('campaign-start').textContent=data.pending||S.next()?(count?'繼續前三關挑戰':'開始三關挑戰'):'查看購買優惠';
     U.$('campaign-progress').textContent=`已完成 ${count}／100 關 · ${J.persistent()?'進度自動保存':'目前進度僅保留於此次開啟期間'}`;
-    U.$('campaign-replay').innerHTML=C.stages.map(stage=>`<button class="journey-step" data-action="campaign-play" data-level="${stage.id}" ${S.canPlay(stage.id)?'':'disabled'}><span class="journey-number">0${stage.id}</span><span><b>第 ${stage.id} 關</b><small>${J.has(stage.id)?'已完成 · 再挑戰':S.canPlay(stage.id)?'開始挑戰':'完成前關後開啟'}</small></span>${U.stars(data.records[stage.id]?.stars||0)}</button>`).join('');
+    const completed=C.stages.filter(stage=>J.has(stage.id)).length;
+    U.$('campaign-replay-details').hidden=completed===0;
+    if(!completed) U.$('campaign-replay-details').open=false;
+    U.$('campaign-replay-progress').textContent=`已完成 ${completed}／3 關`;
+    U.$('campaign-replay').innerHTML=C.stages.map(stage=>`<button class="journey-step" data-action="campaign-play" data-level="${stage.id}" ${S.canPlay(stage.id)?'':'disabled'}><span class="journey-step-copy"><b>第 ${stage.id} 關</b><small>${J.has(stage.id)?'已完成 · 再挑戰':S.canPlay(stage.id)?'開始挑戰':'完成前關後開啟'}</small></span>${U.stars(data.records[stage.id]?.stars||0)}</button>`).join('');
   }
   function show(html) { U.$('modal').classList.remove('reward-modal'); U.$('modal').classList.add('campaign-modal'); U.modal(html); }
   function story(id) {

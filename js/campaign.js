@@ -6,7 +6,7 @@ DotGame.Campaign = {
   name: 'PPA 肌膚升級之旅',
   title: '完成三關挑戰，解鎖水母好禮！',
   intro: '跟著水母玩連連看，一起認識 PPA。',
-  detail: '前三關解鎖購買優惠，接著挑戰百關加碼。',
+  detail: '完成前三關，於購買時享優惠；50／100 關另有加碼。',
   // 保留內部價格資料；優惠提案版不渲染價格、不產生優惠券。
   products: [{ size: '30 mL', price: 600 }, { size: '100 mL', price: 1800 }],
   website: 'https://www.012s.com.tw/products/ppa1-%E7%9A%AE%E8%86%9A%E5%95%8F%E9%A1%8C%E5%B0%88%E7%94%A8',

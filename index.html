@@ -53,24 +53,18 @@
             <h1 id="home-heading"></h1>
             <p id="campaign-intro" class="campaign-intro"></p>
             <p id="campaign-detail" class="campaign-detail"></p>
-            <div class="campaign-hero-actions"><button id="campaign-start" class="button button-primary" data-action="campaign-start">開始三關挑戰</button><a class="button button-secondary" href="#campaign-information">認識 PPA 與活動贈禮</a></div>
+            <div class="campaign-hero-actions"><button id="campaign-start" class="button button-primary" data-action="campaign-start">開始三關挑戰</button><button class="text-button campaign-rewards-link" data-action="rewards">活動獎勵與辦法 <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
             <p id="campaign-progress" class="campaign-progress"></p>
           </div>
           <div id="campaign-welcome" class="campaign-welcome"></div>
         </div>
         <div class="home-bottom">
-          <div class="section-kicker"><span>THREE LITTLE CONNECTIONS</span><span>三段挑戰，一起探索。</span></div>
-          <div class="rule-grid">
-            <div class="rule-card"><span class="rule-number">01</span><div><h2>找到相同圖案</h2><p>最多轉彎兩次；5 秒內接續配對，累積連擊。</p></div></div>
-            <div class="rule-card"><span class="rule-number">02</span><div><h2>連起兩瓶 PPA</h2><p>合法配對白底瓶子，依連擊額外消除 1～5 對。</p></div></div>
-            <div class="rule-card"><span class="rule-number">03</span><div><h2>完成三關之旅</h2><p>收集通關星星，也認識 PPA 的日常照護提案。</p></div></div>
-          </div>
-          <div id="campaign-replay" class="journey-steps" aria-label="活動關卡與重玩"></div>
+          <div class="home-play-hint"><p><strong>玩法</strong> 配對相同圖案，連線最多轉彎兩次；連起兩瓶 PPA，還能額外消除。</p><button class="text-button" data-action="help">完整玩法 <svg class="icon" aria-hidden="true"><use href="#i-help"/></svg></button></div>
+          <details id="campaign-replay-details" class="journey-replay" hidden>
+            <summary>三關進度與重玩 <span id="campaign-replay-progress"></span></summary>
+            <div id="campaign-replay" class="journey-steps" aria-label="活動關卡與重玩"></div>
+          </details>
         </div>
-        <section id="campaign-information" class="campaign-information" aria-labelledby="information-heading" tabindex="-1">
-          <div class="information-intro"><p class="eyebrow">MEET YOUR DAILY COMPANION</p><h2 id="information-heading">認識 PPA<br>與活動贈禮</h2><p>把保養，放進每天的生活節奏。</p></div>
-          <div id="campaign-products"></div>
-        </section>
         <div class="free-challenge"><div><p class="eyebrow">DOT TO DOT · FREE PLAY</p><h2>還想多連幾道光？</h2><p>100 關自由挑戰，繼續收集你的星星。原有進度與紀錄都在。</p></div><button class="button button-secondary" data-action="levels">進入自由挑戰 <svg class="icon"><use href="#i-arrow"/></svg></button></div>
       </section>
 

@@ -83,6 +83,13 @@
 .help-stars>p{display:flex;align-items:center;gap:10px;margin:6px 0;color:var(--gold);text-align:left}
 .help-stars .stars{flex-shrink:0}
 .help-stars .icon{width:12px;height:12px}
+@media(max-width:760px){
+  .stars{flex-shrink:0;line-height:1;vertical-align:middle}
+  .collection .collection-star{width:20px;height:20px}
+  .help-stars>p{align-items:baseline}
+  .help-stars>p>span:last-child{min-width:0}
+  .ppa-spark{transform-box:fill-box;transform-origin:center;transform:scale(2)}
+}
 
 /* 通關操作同一層級：統一深色按鈕，滑鼠移入才變為青綠色。 */
 .modal-actions.result-actions>button{display:inline-flex;align-items:center;align-self:stretch;justify-content:center;gap:14px;width:100%;min-height:51px;padding:12px 24px;border:1px solid var(--line);border-radius:2px;font-size:14px;font-weight:700;letter-spacing:1px;background:var(--panel-light);color:var(--ink);box-shadow:0 3px 0 #0c141c;transition:transform .15s,background .15s,box-shadow .15s}
