@@ -22,7 +22,16 @@ DotGame.CampaignUI = (() => {
   function show(html) { U.$('modal').classList.remove('reward-modal'); U.$('modal').classList.add('campaign-modal'); U.modal(html); }
   function story(id) {
     const item=DotGame.Stories.forLevel(id);
-    return `<section class="level-story" aria-label="本關照護靈感"><p class="eyebrow">PPA · 日常照護靈感</p><h3>${escape(item.display.title)}</h3><p>${escape(item.display.body)}</p></section>`;
+    const {body, lineBreaks, compactBelow} = item.display;
+    // 同一份原文插入分行標記；窄卡片可切換斷點，不重複朗讀內容。
+    const markers = lineBreaks.map((offset, i) => ({offset, name:i ? 'compact' : 'default'})).sort((a,b)=>a.offset-b.offset);
+    let start=0, copy='';
+    for (const {offset,name} of markers) {
+      copy += escape(body.slice(start,offset)) + `<br class="story-break-${name}">`;
+      start=offset;
+    }
+    copy += escape(body.slice(start));
+    return `<section class="level-story" aria-label="本關照護靈感"><p class="eyebrow">PPA · 日常照護靈感</p><h3>${escape(item.display.title)}</h3><p class="story-body${lineBreaks.length > 1 ? ` compact-below-${compactBelow}` : ''}">${copy}</p></section>`;
   }
   function milestone(notices=J.milestones()) {
     return notices.map(n=>`<aside class="milestone-notice" role="status"><strong>${n} 關里程碑達成！</strong><p>已完成 ${n} 個不同關卡。${R.purchase()==='verified'?'前往獎勵頁確認本階段申領資格。':'完成一次有效活動購買並通過驗證後，可申領本階段的 1 瓶 PPA＋1 個水母公仔。'}</p></aside>`).join('');

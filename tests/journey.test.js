@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {boot}=require('./helpers/game-harness');
 const assertRenderedText=require('./helpers/assert-rendered-text');
+const storyLayout=require('../tools/story-layout');
 const rec={score:1234,time:22.5,stars:2};
 const records=n=>Object.fromEntries(Array.from({length:n},(_,i)=>[i+1,{...rec,score:rec.score+i}]));
 const memory=(n,extra={})=>new Map([['dot-to-dot.v1',JSON.stringify({unlocked:Math.min(100,n+1),records:records(n),sound:false,...extra})]]);
@@ -10,11 +11,17 @@ async function run() {
   assert.equal(new Set(D.Stories.mapping).size,100);assert.equal(new Set(D.Stories.contents.map(e=>e.contentId)).size,100);
   assert.equal(JSON.stringify(D.Stories.mapping.slice(0,3)),JSON.stringify([11,9,86]));
   assert.equal(JSON.stringify(D.Stories.contents.filter(e=>e.category==='ingredients').map(e=>e.contentId)),JSON.stringify([3,4,5]));
+  assert.throws(()=>storyLayout(16,'已更新的文案'),/分行設定與顯示稿不符/,'換稿後須重新確認人工斷點');
   for(let id=1;id<=100;id++) {
     const item=D.Stories.forLevel(id),html=D.CampaignUI.story(id);
     assertRenderedText(html,`第 ${id} 關通關介紹`);
     assert.ok(item.contentId>=1&&item.contentId<=100&&item.display.title&&item.display.body);
-    assert.ok(html.includes(item.display.title)&&html.includes(item.display.body));
+    assert.ok(html.includes(item.display.title)&&html.replace(/<br class="story-break-(?:default|compact)">/g,'').includes(item.display.body),'分行不得改寫或重複原文');
+    const layout=storyLayout(item.contentId,item.display.body);
+    assert.deepEqual(Array.from(item.display.lineBreaks),layout.lineBreaks,'全部內容須保留人工分行設定');
+    assert.equal(item.display.compactBelow,layout.compactBelow);
+    assert.equal((html.match(/class="story-break-default"/g)||[]).length,1);
+    assert.equal((html.match(/class="story-break-compact"/g)||[]).length,item.display.lineBreaks.length-1);
     assert.doesNotMatch(html,/company-review|candidate-awaiting|authorized-neutral|公司確認|成品資料支持|止痛用途|候選題目|Markdown/);
     if(item.contentId>=91&&item.contentId<=95) {
       assert.equal(item.reviewStatus,'candidate-awaiting-company');assert.equal(item.display.status,'authorized-neutral-fallback');

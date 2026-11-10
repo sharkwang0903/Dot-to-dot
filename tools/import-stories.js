@@ -1,5 +1,6 @@
 /* 一次性內容匯入工具：只讀外部來源，產出遊戲模組與完整對照表。 */
 const fs = require('node:fs'), path = require('node:path');
+const storyLayout = require('./story-layout');
 const source = process.argv[2];
 if (!source) throw Error('請提供百題 Markdown 來源路徑。');
 const text = fs.readFileSync(source, 'utf8');
@@ -14,10 +15,12 @@ const fallbacks = [
 ];
 const contents = entries.map(e => {
   const candidate = e.contentId >= 91 && e.contentId <= 95;
+  const display = candidate?{title:fallbacks[e.contentId-91][0],body:fallbacks[e.contentId-91][1],status:'authorized-neutral-fallback'}:{title:e.title,body:e.body,status:'source-draft'};
+  Object.assign(display, storyLayout(e.contentId, display.body));
   return {...e, category:e.contentId>=3&&e.contentId<=5?'ingredients':'daily-care',
     reviewStatus:candidate?'candidate-awaiting-company':'company-review-draft',
     sourceDraft:{title:e.title,body:e.body},
-    display:candidate?{title:fallbacks[e.contentId-91][0],body:fallbacks[e.contentId-91][1],status:'authorized-neutral-fallback'}:{title:e.title,body:e.body,status:'source-draft'}};
+    display};
 });
 // 身體部位、環境、使用方式與其他日常主題交錯；前三篇與最後一篇固定。
 const groups = [entries.filter(e=>e.contentId>=31&&e.contentId<=50),entries.filter(e=>e.contentId>=51&&e.contentId<=70),

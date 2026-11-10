@@ -1,5 +1,21 @@
 /* 活動版面獨立於原像素棋盤，角色保留原插畫風格。 */
 .level-story{text-align:left;border:1px solid #5e4d65;border-radius:4px;padding:18px;margin:20px 0;background:linear-gradient(135deg,#30283d,#202b34)}
+/* 以介紹卡片的可用寬度選擇人工語意斷點；極窄畫面仍允許自然換行。 */
+.level-story{container:story / inline-size}
+.level-story .story-body{text-wrap:pretty;overflow-wrap:break-word}
+.level-story .story-break-compact{display:none}
+@container story (max-width:280px){
+  .compact-below-280 .story-break-default{display:none}
+  .compact-below-280 .story-break-compact{display:initial}
+}
+@container story (max-width:300px){
+  .compact-below-300 .story-break-default{display:none}
+  .compact-below-300 .story-break-compact{display:initial}
+}
+@container story (max-width:230px){
+  .level-story .story-body br{display:none}
+  .level-story .story-body{text-wrap:balance}
+}
 .level-story h3{font-size:20px;line-height:1.6;margin:7px 0 9px;color:#f1ddef;letter-spacing:.5px}.level-story p:last-child{font-size:14px;line-height:1.9;color:#d0d7df}.level-story .eyebrow{justify-content:flex-start;font-size:10px}
 .milestone-notice{padding:15px 18px;margin:18px 0;border-left:3px solid #e7c77d;background:#e7c77d0e;text-align:left}.milestone-notice strong{color:#e7c77d;font-size:17px}.milestone-notice p{margin-top:7px;color:#cddbd5}
 .journey-total{margin-top:12px!important}.journey-total strong{color:#b8efcf;font-size:24px}.journey-progress{display:block;width:100%;height:12px;margin:14px 0;accent-color:#9de2b7}.purchase-state,.service-note{border:1px solid #5f5269;padding:12px 15px;margin:18px 0!important;background:#292735}
